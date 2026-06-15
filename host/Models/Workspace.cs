@@ -1,6 +1,6 @@
 ﻿namespace FlagForgeHost.Models;
 
-public class Project
+public class Workspace
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = "";

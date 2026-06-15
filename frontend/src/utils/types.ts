@@ -1,4 +1,4 @@
-export type Project = {
+export type Workspace = {
     id: string,
     name: string,
     version: number,

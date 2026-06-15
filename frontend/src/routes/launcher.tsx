@@ -9,15 +9,16 @@ export default function Launcher() {
     const workspaceStore = useWorkspaceStore()
     const navigate = useNavigate()
     const [createWorkspaceModal, setCreateWorkspaceModal] = useState(false)
-
+ 
     useEffect(() => {
         const restore = async() => { await restoreWindow() }
         restore()
     }, [])
-
+ 
     const handleOpen = async() => {
         const workspace = await openWorkspace()
-        workspaceStore.setWorkspace(workspace.name, `${workspace.location}\\${workspace.name}`)
+        if(!workspace) return
+        workspaceStore.setWorkspace(workspace.name, '')
         navigate('/workspace')
     }
 

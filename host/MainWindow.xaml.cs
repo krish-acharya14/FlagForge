@@ -10,8 +10,10 @@ namespace FlagForgeHost;
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
+
 public partial class MainWindow : Window
 {
+    
     public MainWindow()
     {
         InitializeComponent();
@@ -33,31 +35,28 @@ public partial class MainWindow : Window
         var root = document.RootElement;
         var type = root.GetProperty("type").GetString();
 
-        switch(type)
+        switch (type)
         {
-            case "pickFolder": PickFolder(); break;
-            case "createWorkspace": CreateWorkspace(root); break;
-            case "openWorkspace": OpenWorkspace(); break;
-            case "loadProjects": LoadProjects(root); break;
-            case "createProject": CreateProject(root); break;
-            case "deleteProject": DeleteProject(root); break;
-            case "maximizeWindow": WindowState = WindowState.Maximized; ResizeMode = ResizeMode.CanResize; break;
-            case "restoreWindow": WindowState = WindowState.Normal; ResizeMode = ResizeMode.CanMinimize; break;
+            case "pickFolder" : PickFolder(); break;
+            case "createdWorkspace" : CreateWorkspace(root); break;
+            case "openWorkspace" : OpenWorkspace(); break;
+            case "maximizeWindow" : WindowState = WindowState.Maximized; ResizeMode = ResizeMode.CanResize; break;
+            case "restoreWindow" : WindowState = WindowState.Normal; ResizeMode = ResizeMode.CanMinimize; break;
         }
     }
-
     private void SendMessage(object payload)
     {
-        var json = JsonSerializer.Serialize(payload);
-        WebView.CoreWebView2.PostWebMessageAsJson(json);
+      var json = JsonSerializer.Serialize(payload);
+      WebView.CoreWebView2.PostWebMessageAsJson(json);  
     }
 
     private void PickFolder()
     {
-        OpenFolderDialog dialog = new()
+        var dialog = new OpenFolderDialog()
         {
-            Title = "Select Workspace Folder"
+            Title = "Select Workspace Location"
         };
+
         if (dialog.ShowDialog() != true) return;
 
         SendMessage(new
@@ -76,22 +75,23 @@ public partial class MainWindow : Window
         var workspacePath = Path.Combine(location, name);
         if (Directory.Exists(workspacePath))
         {
-            SendMessage(new
-            {
-                type = "createWorkspaceFailed",
-                error = "Workspace already exists."
-            });
-            return;
+           SendMessage(new
+           {
+               type = "createWorkspaceFailed",
+               error = "Workspace already exists."
+           });
+           return;
         }
         Directory.CreateDirectory(workspacePath);
 
         var workspaceJson = JsonSerializer.Serialize(new
         {
+            id = Guid.NewGuid(),
             name,
-            location,
             version = 1,
             createdAt = DateTime.UtcNow
-        }, new JsonSerializerOptions { WriteIndented = true, IndentSize = 4 });
+        }, new JsonSerializerOptions { WriteIndented = true, IndentSize = 4});
+
         File.WriteAllText(Path.Combine(workspacePath, "workspace.json"), workspaceJson);
 
         SendMessage(new
@@ -107,111 +107,19 @@ public partial class MainWindow : Window
         {
             Title = "Open Workspace",
             AddExtension = true,
-            Filter = "Workspace Files|workspace.json",
+            Filter = "Workspace Files|Workspace.json",
         };
-        if (dialog.ShowDialog() != true) return;
-        var path = dialog.FileName;
 
+        if (dialog.ShowDialog() != true) return;
+
+        var path = dialog.FileName;
         if (!File.Exists(path)) return;
+
         var workspaceJson = File.ReadAllText(path);
         SendMessage(new
         {
             type = "openWorkspaceResult",
             workspace = JsonSerializer.Deserialize<JsonElement>(workspaceJson)
-        });
-    }
-
-    private void LoadProjects(JsonElement root)
-    {
-        var payload = root.GetProperty("payload");
-        var workspacePath = payload.GetProperty("workspacePath").GetString()!;
-        var projects = new List<Project>();
-        
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            PropertyNameCaseInsensitive = true 
-        };
-
-        foreach (var dir in Directory.GetDirectories(workspacePath))
-        {
-            var projectJsonPath = Path.Combine(dir, "project.json");
-            if (!File.Exists(projectJsonPath)) continue;
-
-            var projectJson = File.ReadAllText(projectJsonPath);
-            var project = JsonSerializer.Deserialize<Project>(projectJson, options);
-            if(project != null) projects.Add(project);
-        }
-
-        SendMessage(new
-        {
-            type = "loadProjectsResult",
-            projects = projects.Select(p => JsonSerializer.SerializeToElement(p, options))
-        });
-    }
-
-    private void CreateProject(JsonElement root)
-    {
-        var payload = root.GetProperty("payload");
-        var workspacePath = payload.GetProperty("workspacePath").GetString()!;
-        var name = payload.GetProperty("name").GetString()!;
-
-        var projectPath = Path.Combine(workspacePath, name);
-        if (Directory.Exists(projectPath))
-        {
-            SendMessage(new
-            {
-                type = "createProjectFailed",
-                error = "Project already exists."
-            });
-            return;
-        }
-        Directory.CreateDirectory(projectPath);
-
-        var project = new Project
-        {
-            Id = Guid.NewGuid(),
-            Name = name,
-            Version = 1,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        var projectJson = JsonSerializer.Serialize(new
-        {
-            id = project.Id,
-            name = project.Name,
-            version = project.Version,
-            createdAt = project.CreatedAt
-        }, new JsonSerializerOptions { WriteIndented = true, IndentSize = 4 });
-        File.WriteAllText(Path.Combine(projectPath, "project.json"), projectJson);
-
-        SendMessage(new
-        {
-            type = "createProjectResult",
-            path = projectPath
-        });
-    }
-
-    private void DeleteProject(JsonElement root)
-    {
-        var payload = root.GetProperty("payload");
-        var projectPath = payload.GetProperty("projectPath").GetString()!;
-
-        if (!Directory.Exists(projectPath))
-        {
-            SendMessage(new
-            {
-                type = "deleteProjectFailed",
-                error = "Project does not exist."
-            });
-            return;
-        }
-        Directory.Delete(projectPath, true);
-
-        SendMessage(new
-        {
-            type = "deleteProjectResult",
-            projectPath
         });
     }
 }
