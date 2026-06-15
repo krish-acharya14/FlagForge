@@ -1,7 +1,8 @@
-import { useNavigate } from 'react-router-dom'
-import { useWorkspaceStore } from '../stores/workspaceStore'
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import Background from '../components/Background'
 import { maximizeWindow } from '../services/host'
+import { useWorkspaceStore } from '../stores/workspaceStore'
 
 export default function Workspace() {
     const navigate = useNavigate()
@@ -13,8 +14,9 @@ export default function Workspace() {
         maximize()
     }, [])
 
-    return <div className="flex flex-row h-screen bg-gray-900 text-white">
-        <aside className="flex flex-col w-64 p-6 bg-gray-800 rounded-r-xl">
+    return <div className="relative h-screen flex text-white">
+        <div className="absolute inset-0 -z-10"><Background /></div>
+        <aside className="flex flex-col w-64 p-6 bg-gray-800/85 opacity-70 rounded-r-xl">
             <div onClick={() => navigate('/')} className="flex flex-row items-center gap-2 cursor-pointer">
                 <img src="/favicon.ico" className="w-12 h-12" />
                 <span className="tracking-wider font-bold text-xl">FlagForge</span>

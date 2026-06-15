@@ -1,92 +1,78 @@
-* {
-    margin : 0;
-    padding : 0;
-    box-sizing : border-box;
-}
-
-body {
-    background : #0b0f1a;
-    overflow : hidden;
-    height : 100vh;
-    width : 100vw;
-}
-
 .bg-base {
-    position : fixed;
-    inset : 0;
-    background :
+    position: fixed;
+    inset: 0;
+    background:
         radial-gradient(ellipse 70% 50% at 50% 0%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
         radial-gradient(ellipse 50% 40% at 15% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%),
         radial-gradient(ellipse 50% 40% at 85% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
         #0b0f1a;
-    z-index : 0;
+    z-index: 0;
 }
 
 .dot-grid {
-    position : fixed;
-    inset : 0;
-    background-image : radial-gradient(circle, rgba(100, 116, 139, 0.15) 1px, transparent 1px);
-    background-size : 40px 40px;
-    z-index : 1;
-    pointer-events : none;
-    mask-image : radial-gradient(ellipse at center, black 50%, transparent 90%);
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(100, 116, 139, 0.15) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 1;
+    pointer-events: none;
+    mask-image: radial-gradient(ellipse at center, black 50%, transparent 90%);
 }
 
 .code-float {
-    position : fixed;
-    font-family : 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-    font-size : 12px;
-    line-height : 1.7;
-    color : rgba(148, 163, 184, 0.12);
-    white-space : pre;
-    pointer-events : none;
-    z-index : 2;
-    user-select : none;
-    text-shadow : 0 0 20px rgba(6, 182, 212, 0.05);
+    position: fixed;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: rgba(148, 163, 184, 0.12);
+    white-space: pre;
+    pointer-events: none;
+    z-index: 2;
+    user-select: none;
+    text-shadow: 0 0 20px rgba(6, 182, 212, 0.05);
 }
 
 .code-float.c1 {
     top: 8%;
     left: 5%;
-    animation : drift 35s ease-in-out infinite;
+    animation: drift 35s ease-in-out infinite;
 }
 
 .code-float.c2 {
-    top : 55%;
-    left : 5%;
-    animation : drift 35s ease-in-out infinite;
+    top: 55%;
+    left: 5%;
+    animation: drift 35s ease-in-out infinite;
 }
 
 .code-float.c3 {
-    bottom : 15%;
-    right : 10%;
-    animation : drift 30s ease-in-out infinite;
-    animation-delay : -6s;
-    color : rgba(16, 185, 129, 0.1);
+    bottom: 15%;
+    right: 10%;
+    animation: drift 30s ease-in-out infinite;
+    animation-delay: -6s;
+    color: rgba(16, 185, 129, 0.1);
 }
 
 @keyframes drift {
     0%, 100% {transform: translate(0,0); }
-    25%       { transform: translate(15px, -10px); }
-    50%       { transform: translate(-8px, 12px); }
-    75%       { transform: translate(10px, 5px); }
+    25%      { transform: translate(15px, -10px); }
+    50%      { transform: translate(-8px, 12px); }
+    75%      { transform: translate(10px, 5px); }
 }
 
-/* Ambient orbs */
 .orb {
-    position : fixed;
-    border-radius : 50%;
-    filter : blur(100px);
-    pointer-events : none;
-    z-index : 3;
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    pointer-events: none;
+    z-index: 3;
 }
 
 .orb-1 {
     width: 450px;
     height: 450px;
-    background : rgba(6, 182, 212, 0.06);
-    top : -10%;
-    right : -5%;
+    background: rgba(6, 182, 212, 0.06);
+    top: -10%;
+    right: -5%;
     animation: orb-move 25s ease-in-out infinite;
 }
 
@@ -112,11 +98,10 @@ body {
 
 @keyframes orb-move {
     0%, 100% { transform: translate(0, 0) scale(1); }
-    33%       { transform: translate(25px, -15px) scale(1.08); }
-    66%       { transform: translate(-15px, 10px) scale(0.95); }
+    33%      { transform: translate(25px, -15px) scale(1.08); }
+    66%      { transform: translate(-15px, 10px) scale(0.95); }
 }
 
-/* Light Streaks */
 .light-streak {
     position: fixed;
     height: 1px;
@@ -152,10 +137,9 @@ body {
 
 @keyframes streak {
     0%, 100% { opacity: 0.4; transform: translateX(0); }
-    50%       { opacity: 1;   transform: translateX(20px); }
+    50%      { opacity: 1;   transform: translateX(20px); }
 }
 
-/* Circuit board */
 .circuit-container {
     position: fixed;
     inset: 0;
@@ -195,10 +179,9 @@ body {
 
 @keyframes node-pulse {
     0%, 100% { opacity: 0.5; transform: scale(1); }
-    50%       { opacity: 1;   transform: scale(1.3); }
+    50%      { opacity: 1;   transform: scale(1.3); }
 }
 
-/* Data Packets travel */
 .data-packet {
     position: absolute;
     width: 4px;
@@ -264,7 +247,6 @@ body {
     100% { transform: translateY(150px); opacity: 0; }
 }
 
-/* Bottom fade */
 .bottom-fade {
     position: fixed;
     bottom: 0;
@@ -275,6 +257,7 @@ body {
     z-index: 7;
     pointer-events: none;
 }
+
 .vignette {
     position: fixed;
     inset: 0;
