@@ -46,7 +46,6 @@ print(p.recvline())`
             <div className="circuit-node" style={{ top: '597px', left: '447px' }} />
             <div className="circuit-node purple" style={{ top: '697px', right: '147px' }} />
             <div className="circuit-node green" style={{ top: '497px', right: '147px' }} />
-
             {[...Array(5)].map((_, i) => <div key={i} className={`data-packet p${i + 1}`} />)}
         </div>
         <div className="bottom-fade" />

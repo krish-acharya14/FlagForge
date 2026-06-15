@@ -1,7 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createWorkspace, pickFolder } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
-import { useNavigate } from 'react-router-dom'
 
 type Props = {
     open: boolean
@@ -35,7 +35,7 @@ export default function CreateWorkspaceModal({ open, onClose }: Props) {
 
     return <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="bg-gray-800 p-6 rounded-xl w-lg flex flex-col">
-            <h2 className="text-xl font-semibold mb-4">Create New Workspace</h2>
+            <h2 className="text-xl font-semibold">Create New Workspace</h2>
             <hr className="my-4 border-gray-700" />
             <label htmlFor="workspaceName" className="mb-2">Workspace Name</label>
             <input id="workspaceName" type="text" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} className="w-full p-2 rounded-xl bg-gray-700 border border-gray-600 text-white" placeholder="Enter workspace name" />
