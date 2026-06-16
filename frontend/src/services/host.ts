@@ -119,6 +119,24 @@ export async function createChallenge(workspacePath: string, challengeName: stri
     })
 }
 
+export async function updateChallengeTags(workspacePath: string, challengeId: string, tags: string[]): Promise<void> {
+    return new Promise((resolve) => {
+        const handler = (event: MessageEvent) => {
+            const data = event.data
+            if(data.type === "updateChallengeTagsResult") {
+                window.chrome?.webview?.removeEventListener("message", handler)
+                resolve()
+            }
+        }
+
+        window.chrome?.webview?.addEventListener("message", handler)
+        window.chrome?.webview?.postMessage({
+            type: "updateChallengeTags",
+            payload: { workspacePath, challengeId, tags }
+        })
+    })
+}
+
 export async function minimizeWindow(): Promise<void> {
     window.chrome?.webview?.postMessage({ type: "minimizeWindow" })
 }
