@@ -49,10 +49,10 @@ export async function openWorkspace(): Promise<Workspace | null> {
     })
 }
 
-export async function maximizeWindow(): Promise<void> {
-    window.chrome?.webview?.postMessage({ type: "maximizeWindow" })
+export async function minimizeWindow(): Promise<void> {
+    window.chrome?.webview?.postMessage({ type: "minimizeWindow" })
 }
 
-export async function restoreWindow(): Promise<void> {
-    window.chrome?.webview?.postMessage({ type: "restoreWindow" })
+export async function closeWindow(): Promise<void> {
+    window.chrome?.webview?.postMessage({ type: "closeWindow" })
 }

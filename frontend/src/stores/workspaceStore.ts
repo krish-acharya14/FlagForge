@@ -1,18 +1,19 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Workspace } from '../utils/types'
+import type { Challenge } from '../utils/types'
 
 type WorkspaceStore = {
     name: string
     location: string
-    projects: Workspace[]
+    challenges: Challenge[]
     setWorkspace: (name: string, location: string) => void
+    setChallenges: (challenges: Challenge[]) => void
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>()(persist(set => ({
     name: '',
     location: '',
-    projects: [],
+    challenges: [],
     setWorkspace: (name, location) => set({ name, location }),
-    clearWorkspace: () => set({name: '', location: ''})
+    setChallenges: (challenges) => set({ challenges })
 }), { name: 'workspace-store' }))

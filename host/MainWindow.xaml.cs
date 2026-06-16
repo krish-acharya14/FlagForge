@@ -40,14 +40,15 @@ public partial class MainWindow : Window
             case "pickFolder" : PickFolder(); break;
             case "createdWorkspace" : CreateWorkspace(root); break;
             case "openWorkspace" : OpenWorkspace(); break;
-            case "maximizeWindow" : WindowState = WindowState.Maximized; ResizeMode = ResizeMode.CanResize; break;
-            case "restoreWindow" : WindowState = WindowState.Normal; ResizeMode = ResizeMode.CanMinimize; break;
+            case "minimizeWindow": WindowState = WindowState.Minimized; break;
+            case "closeWindow": Close(); break;
         }
     }
+
     private void SendMessage(object payload)
     {
-      var json = JsonSerializer.Serialize(payload);
-      WebView.CoreWebView2.PostWebMessageAsJson(json);  
+        var json = JsonSerializer.Serialize(payload);
+        WebView.CoreWebView2.PostWebMessageAsJson(json);  
     }
 
     private void PickFolder()
@@ -75,23 +76,26 @@ public partial class MainWindow : Window
         var workspacePath = Path.Combine(location, name);
         if (Directory.Exists(workspacePath))
         {
-           SendMessage(new
-           {
-               type = "createWorkspaceFailed",
-               error = "Workspace already exists."
-           });
-           return;
+            SendMessage(new
+            {
+                type = "createWorkspaceFailed",
+                error = "Workspace already exists."
+            });
+            return;
         }
         Directory.CreateDirectory(workspacePath);
 
-        var workspaceJson = JsonSerializer.Serialize(new
+        var workspace = new Workspace
         {
-            id = Guid.NewGuid(),
-            name,
-            version = 1,
-            createdAt = DateTime.UtcNow
-        }, new JsonSerializerOptions { WriteIndented = true, IndentSize = 4});
-
+            Id = Guid.NewGuid(),
+            Name = name,
+            Location = location,
+            Version = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        
+        var workspaceJson = JsonSerializer.Serialize(workspace, new JsonSerializerOptions { WriteIndented = true, IndentSize = 4, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         File.WriteAllText(Path.Combine(workspacePath, "workspace.json"), workspaceJson);
 
         SendMessage(new
@@ -107,7 +111,7 @@ public partial class MainWindow : Window
         {
             Title = "Open Workspace",
             AddExtension = true,
-            Filter = "Workspace Files|Workspace.json",
+            Filter = "Workspace Files|workspace.json",
         };
 
         if (dialog.ShowDialog() != true) return;
