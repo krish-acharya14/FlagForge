@@ -2,6 +2,7 @@ export type Workspace = {
     id: string
     name: string
     location: string
+    path: string
     version: number
     createdAt: Date
     updatedAt: Date

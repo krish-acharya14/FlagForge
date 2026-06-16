@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CreateWorkspaceModal from '../components/CreateWorkspaceModal'
-import { openWorkspace } from '../services/host'
+import { loadRecentWorkspaces, openRecentWorkspace, openWorkspace } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
+import type { Workspace } from '../utils/types'
 
 export default function Launcher() {
     const workspaceStore = useWorkspaceStore()
     const navigate = useNavigate()
     const [createWorkspaceModal, setCreateWorkspaceModal] = useState(false)
- 
+    const [recentWorkspaces, setRecentWorkspaces] = useState<Workspace[]>([])
+
     const handleOpen = async() => {
         const workspace = await openWorkspace()
         if(!workspace) return
@@ -16,10 +18,35 @@ export default function Launcher() {
         navigate('/workspace')
     }
 
+    useEffect(() => {
+        const load = async() => {
+            const workspaces = await loadRecentWorkspaces()
+            setRecentWorkspaces(workspaces)
+        }
+        load()
+    }, [])
+
     return <div className="h-screen flex">
         <aside className="flex flex-col gap-2 w-[20vw] bg-bg-light border-r border-border p-6">
             <h1 className="font-semibold uppercase">Recent Workspaces</h1>
             <span className="text-sm text-muted">Your recently opened workspaces</span>
+            <hr className="my-2 border-border" />
+            {recentWorkspaces.length === 0
+                ? <span className="text-sm text-muted">No recent workspaces found.</span>
+                : recentWorkspaces.map(workspace => <button
+                    key={workspace.id}
+                    onClick={async() => {
+                        const openedWorkspace = await openRecentWorkspace(workspace.path)
+                        console.log(openedWorkspace)
+                        workspaceStore.setWorkspace(openedWorkspace.name, `${workspace.location}\\${workspace.name}`)
+                        navigate('/workspace')
+                    }}
+                    className="text-left w-full p-4 rounded-xl cursor-pointer bg-border/50 hover:bg-primary transition"
+                >
+                    <span className="font-semibold">{workspace.name}</span>
+                    <span className="text-xs line-clamp-1 break-all">Last Updated: {new Date(workspace.updatedAt).toLocaleString()}</span>
+                </button>)
+            }
         </aside>
         <main className="flex-1 flex flex-col items-center justify-center p-6">
             <img src="/favicon.ico" alt="FlagForge Logo" className="w-24 h-24 mb-4" />
