@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { sendCommand } from '../services/host'
 import { Commands } from '../utils/commands'
 import type { Challenge } from '../utils/types'
+import { fileToBase64 } from '../utils/helpers'
 
 type WorkspaceStore = {
     name: string
@@ -14,6 +15,7 @@ type WorkspaceStore = {
     setActiveChallenge: (challenge: Challenge | null) => void
     loadChallenges: () => Promise<void>
     updateActiveChallengeField: (field: 'tags' | 'description' | 'solution' | 'flag', value: string | string[]) => Promise<Challenge | null>
+    addAttachmentsToActiveChallenge: (attachments: File[]) => Promise<Challenge | null>
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => ({
@@ -53,6 +55,23 @@ export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => 
             activeChallenge: updatedChallenge
         }))
 
+        return updatedChallenge
+    },
+    addAttachmentsToActiveChallenge: async(attachments) => {
+        const current = get().activeChallenge
+        if(!current) return null
+
+        const attachmentData = await Promise.all(attachments.map(async file => ({ name: file.name, content: await fileToBase64(file) })))
+        const updatedChallenge = await sendCommand<Challenge>(Commands.AddAttachments, {
+            path: get().path,
+            id: current.id,
+            attachmentData
+        })
+
+        set(state => ({
+            challenges: state.challenges.map(challenge => challenge.id === updatedChallenge.id ? updatedChallenge : challenge),
+            activeChallenge: updatedChallenge
+        }))
         return updatedChallenge
     }
 }), { name: 'workspace-store' }))

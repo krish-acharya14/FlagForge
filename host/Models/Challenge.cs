@@ -6,6 +6,7 @@ public class Challenge
     public string Title { get; set; } = "";
     public string Description { get; set; } = "";
     public string[] Tags { get; set; } = Array.Empty<string>();
+    public string[] Attachments { get; set; } = Array.Empty<string>();
     public string Solution { get; set; } = "";
     public string Flag { get; set; } = "";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

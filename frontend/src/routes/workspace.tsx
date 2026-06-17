@@ -8,6 +8,7 @@ import CreateChallengeModal from '../components/CreateChallengeModal'
 import { sendCommand } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { Commands } from '../utils/commands'
+import AddAttachmentsOverlay from '../components/AddAttachmentsOverlay'
 
 const CTF_DEFAULT_TAGS = [
     'pwn', 'forensics', 'cryptography', 'web', 'reversing',
@@ -20,6 +21,7 @@ export default function Workspace() {
     const navigate = useNavigate()
     const workspaceStore = useWorkspaceStore()
     const [createChallengeModalOpen, setCreateChallengeModalOpen] = useState(false)
+    const [attachmentsOverlayOpen, setAttachmentsOverlayOpen] = useState(false)
 
     const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
     const [tagInput, setTagInput] = useState('')
@@ -99,7 +101,24 @@ export default function Workspace() {
     const filteredExistingTags = tagInput.trim() ? allExistingTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase())) : allExistingTags
     const nothingToShow = !tagInput.trim() && ctfTagsToShow.length === 0 && filteredExistingTags.length === 0
 
-    return <div className="min-h-[calc(100vh-3rem)] flex">
+    return <div
+        className="min-h-[calc(100vh-3rem)] flex"
+        onDragOver={e => {
+            e.preventDefault()
+            if(activeChallenge) setAttachmentsOverlayOpen(true)
+        }}
+        onDragLeave={e => {
+            e.preventDefault()
+            setAttachmentsOverlayOpen(false)
+        }}
+        onDrop={e => {
+            e.preventDefault()
+            setAttachmentsOverlayOpen(false)
+            if(!activeChallenge) return
+            const files = Array.from(e.dataTransfer.files)
+            workspaceStore.addAttachmentsToActiveChallenge(files)
+        }}
+    >
         <aside className="flex flex-col gap-2 w-[20vw] p-6 bg-bg-light border-r border-border">
             <h1 className="font-semibold uppercase tracking-wider">Workspace</h1>
             <span className="text-sm line-clamp-1 text-muted">{workspaceStore.name}</span>
@@ -124,7 +143,9 @@ export default function Workspace() {
                 <h2 className="text-xl mt-2 text-muted/90">{workspaceStore.name}</h2>
                 <span className="text-muted mt-2">Your CTF workspace is ready.</span>
             </main>
-            : <main className="flex flex-col gap-2 p-6 flex-1">
+            : <main
+                className="flex flex-col gap-2 p-6 flex-1"
+            >
                 <div className="flex flex-row justify-between items-center">
                     <h1 className="text-4xl">{activeChallenge.title}</h1>
                     <button onClick={handleCreateReadme} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faDownload} /></button>
@@ -207,5 +228,6 @@ export default function Workspace() {
             />
         </main>}
         <CreateChallengeModal open={createChallengeModalOpen} onClose={() => setCreateChallengeModalOpen(false)} onCreate={() => workspaceStore.loadChallenges()}/>
+        <AddAttachmentsOverlay open={attachmentsOverlayOpen} />
     </div>
 }
