@@ -1,8 +1,8 @@
-import { faDownload, faPlus, faTag, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faPlus, faTag, faXmark, faGripVertical } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { BlockTypeSelect, BoldItalicUnderlineToggles, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CreateChallengeModal from '../components/CreateChallengeModal'
 import { sendCommand } from '../services/host'
@@ -25,6 +25,46 @@ export default function Workspace() {
     const [tagInput, setTagInput] = useState('')
     const tagDropdownRef = useRef<HTMLDivElement>(null)
     const tagInputRef = useRef<HTMLInputElement>(null)
+
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+    const displayChallenges = useMemo(() => {
+        const base = workspaceStore.challenges;
+        if (!draggedId || !dragOverId || draggedId === dragOverId) return base;
+
+        const arr = [...base];
+        const fromIdx = arr.findIndex(c => c.id === draggedId);
+        const toIdx = arr.findIndex(c => c.id === dragOverId);
+
+        if (fromIdx === -1 || toIdx === -1) return arr;
+
+        const [item] = arr.splice(fromIdx, 1);
+        arr.splice(toIdx, 0, item);
+        return arr;
+    }, [workspaceStore.challenges, draggedId, dragOverId])
+
+    const handleDragStart = (id: string) => {
+        setDraggedId(id);
+        setDragOverId(id);
+    }
+
+    const handleDragOver = (e: React.DragEvent, id: string) => {
+        e.preventDefault();
+        if (draggedId && draggedId !== id) setDragOverId(id);
+    }
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        if (draggedId) workspaceStore.setChallenges(displayChallenges);
+        setDraggedId(null);
+        setDragOverId(null);
+    }
+
+    const handleDragEnd = () => {
+        setDraggedId(null);
+        setDragOverId(null);
+    }
  
     const mdPlugins = [
         headingsPlugin(), listsPlugin(), quotePlugin(), linkPlugin(), markdownShortcutPlugin(), toolbarPlugin({
@@ -111,11 +151,17 @@ export default function Workspace() {
             </div>
             {challenges.length === 0
                 ? <span className="text-sm text-muted">No challenges found.</span>
-                : challenges.map(challenge => <button
-                    key={challenge.id}
-                    onClick={() => workspaceStore.setActiveChallenge(challenge)}
-                    className={`text-left w-full p-2 rounded-xl line-clamp-1 cursor-pointer ${activeChallenge?.id === challenge.id ? 'bg-primary' : 'bg-border/50 hover:bg-border'} transition`}
-                >{challenge.title}</button>)
+                : displayChallenges.map(challenge => (
+                     <div key={challenge.id} draggable onDragStart={() => handleDragStart(challenge.id)} onDragOver={(e) => handleDragOver(e, challenge.id)} onDrop={handleDrop} onDragEnd={handleDragEnd} className={`group flex items-center gap-1 rounded-xl transition-all duration-150 
+                            ${draggedId === challenge.id ? 'opacity-40 scale-[0.97]' : '' } ${ dragOverId === challenge.id && draggedId !== challenge.id ? 'ring-1 ring-primary/60' : ''}`}>
+                        <span className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted px-1 opacity-0 group-hover:opacity-40 hover:!opacity-90 transition-opacity select-none" title="Drag to reorder">
+                            <FontAwesomeIcon icon={faGripVertical} className="text-xs" />
+                        </span>
+                        <button onClick={() => workspaceStore.setActiveChallenge(challenge)} className={`text-left flex-1 min-w-0 p-2 rounded-xl line-clamp-1 cursor-pointer ${activeChallenge?.id === challenge.id ? 'bg-primary' : 'bg-border/50 hover:bg-border'} transition`}>
+                            {challenge.title}
+                        </button>
+                    </div>
+                ))
             }
         </aside>
         {!activeChallenge
