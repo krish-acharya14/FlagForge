@@ -1,4 +1,4 @@
-import { faDownload, faPlus, faTag, faXmark, faGripVertical } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faPlus, faTag, faXmark, faGripVertical, faFile } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { BlockTypeSelect, BoldItalicUnderlineToggles, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
@@ -139,6 +139,22 @@ export default function Workspace() {
     const filteredExistingTags = tagInput.trim() ? allExistingTags.filter(t => t.toLowerCase().includes(tagInput.toLowerCase())) : allExistingTags
     const nothingToShow = !tagInput.trim() && ctfTagsToShow.length === 0 && filteredExistingTags.length === 0
 
+    const getChallengeButtonClass = (challengeId: string, flag: string) => {
+        const isActive = activeChallenge?.id === challengeId;
+        const isCompleted = /^.+\{.+\}$/.test(flag.trim());
+
+        if (isCompleted && isActive) 
+            return 'bg-green-700/60 text-green-100 ring-1 ring-green-500/50';
+
+        if (isCompleted && !isActive) 
+            return 'bg-green-900/30 hover:bg-green-900/50 border border-green-600/30 text-green-300';
+
+        if (!isCompleted && isActive) 
+            return 'bg-primary';
+
+        return 'bg-border/50 hover:bg-border';
+    }
+
     return <div className="min-h-[calc(100vh-3rem)] flex">
         <aside className="flex flex-col gap-2 w-[20vw] p-6 bg-bg-light border-r border-border">
             <h1 className="font-semibold uppercase tracking-wider">Workspace</h1>
@@ -151,17 +167,40 @@ export default function Workspace() {
             </div>
             {challenges.length === 0
                 ? <span className="text-sm text-muted">No challenges found.</span>
-                : displayChallenges.map(challenge => (
+                : displayChallenges.map(challenge => {
+                    const isActive = activeChallenge?.id === challenge.id
+                    const isCompleted = /^.+\{.+\}$/.test(challenge.flag.trim())
+                    const attachments = challenge.attachments ?? []
+                    return (
                      <div key={challenge.id} draggable onDragStart={() => handleDragStart(challenge.id)} onDragOver={(e) => handleDragOver(e, challenge.id)} onDrop={handleDrop} onDragEnd={handleDragEnd} className={`group flex items-center gap-1 rounded-xl transition-all duration-150 
                             ${draggedId === challenge.id ? 'opacity-40 scale-[0.97]' : '' } ${ dragOverId === challenge.id && draggedId !== challenge.id ? 'ring-1 ring-primary/60' : ''}`}>
-                        <span className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted px-1 opacity-0 group-hover:opacity-40 hover:!opacity-90 transition-opacity select-none" title="Drag to reorder">
+                        <span className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted px-1 opacity-0 group-hover:opacity-40 hover:opacity-90! transition-opacity select-none mt-2.5" title="Drag to reorder">
                             <FontAwesomeIcon icon={faGripVertical} className="text-xs" />
                         </span>
-                        <button onClick={() => workspaceStore.setActiveChallenge(challenge)} className={`text-left flex-1 min-w-0 p-2 rounded-xl line-clamp-1 cursor-pointer ${activeChallenge?.id === challenge.id ? 'bg-primary' : 'bg-border/50 hover:bg-border'} transition`}>
-                            {challenge.title}
+                        <button onClick={() => workspaceStore.setActiveChallenge(challenge)} className={`text-left flex-1 min-w-0 p-2 rounded-xl cursor-pointer transition ${getChallengeButtonClass(challenge.id, challenge.flag)}`}>
+                            <div className="line-clamp-1 font-medium">{challenge.title}</div>
+                            {isActive && (<>
+                                {challenge.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1.5"> 
+                                        {challenge.tags.slice(0,3).map(tag => (
+                                            <span key={tag} className={`text-[10px] px-1.5 rounded-full ${isCompleted ? 'bg-green-900/50 text-green-300' : 'bg-primary/30 text-text/80'}`}>{tag}</span>
+                                        ))}
+                                        {challenge.tags.length > 3 && (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-border/60 text-muted">+{challenge.tags.length - 3}</span>
+                                        )}
+                                    </div>
+                                )} 
+                                {attachments.length > 0 && (
+                                    <div className={`flex items-center gap-1 mt-1.5 text-[10px] ${isCompleted ? 'text-green-400/70' : 'text-muted'}`}>
+                                        <FontAwesomeIcon icon={faFile} className="text-[9px]"/>
+                                        <span>{attachments.length} attachment{attachments.length != 1 ? 's' : ''}</span>
+                                    </div>
+                                )}   
+                            </>)}
                         </button>
                     </div>
-                ))
+                    )
+                })
             }
         </aside>
         {!activeChallenge
