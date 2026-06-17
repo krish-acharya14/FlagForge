@@ -6,5 +6,6 @@ export const Commands = {
     CreateWorkspace: 'createWorkspace',
     LoadChallenges: 'loadChallenges',
     CreateChallenge: 'createChallenge',
-    UpdateChallenge: 'updateChallenge'
+    UpdateChallenge: 'updateChallenge',
+    CreateReadme: 'createReadme'
 } as const

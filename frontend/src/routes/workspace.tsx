@@ -1,11 +1,13 @@
-import { faPlus, faTag, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faPlus, faTag, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { BlockTypeSelect, BoldItalicUnderlineToggles, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CreateChallengeModal from '../components/CreateChallengeModal'
+import { sendCommand } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
+import { Commands } from '../utils/commands'
 
 const CTF_DEFAULT_TAGS = [
     'pwn', 'forensics', 'cryptography', 'web', 'reversing',
@@ -60,7 +62,8 @@ export default function Workspace() {
     const handleAddTag = async(tag: string) => {
         const trimmed = tag.trim()
         if(!trimmed || activeChallenge?.tags.includes(trimmed)) return
-        // await workspaceStore.addTagToActiveChallenge(trimmed)
+        const tags = activeChallenge?.tags || []
+        workspaceStore.updateActiveChallengeField('tags', [...tags, trimmed])
         setTagInput('')
         setTagDropdownOpen(false)
     }
@@ -75,7 +78,14 @@ export default function Workspace() {
     }
 
     const handleRemoveTag = async(tag: string) => {
-        // await workspaceStore.removeTagFromActiveChallenge(tag)
+        if(!activeChallenge) return
+        const updatedTags = activeChallenge.tags.filter(t => t !== tag)
+        workspaceStore.updateActiveChallengeField('tags', updatedTags)
+    }
+
+    const handleCreateReadme = async() => {
+        if(!activeChallenge) return
+        await sendCommand(Commands.CreateReadme, { path: workspaceStore.path, title: activeChallenge.title })
     }
 
     const allExistingTags = activeChallenge
@@ -114,8 +124,11 @@ export default function Workspace() {
                 <h2 className="text-xl mt-2 text-muted/90">{workspaceStore.name}</h2>
                 <span className="text-muted mt-2">Your CTF workspace is ready.</span>
             </main>
-            : <div className="flex flex-col gap-2 p-6 flex-1">
-                <h1 className="text-4xl">{activeChallenge.title}</h1>
+            : <main className="flex flex-col gap-2 p-6 flex-1">
+                <div className="flex flex-row justify-between items-center">
+                    <h1 className="text-4xl">{activeChallenge.title}</h1>
+                    <button onClick={handleCreateReadme} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faDownload} /></button>
+                </div>
                 <hr className="my-2 border-border" />
                 <div className="flex flex-row gap-4 flex-wrap items-center">
                     {activeChallenge.tags.map(tag => <span key={tag} className="flex items-center gap-1 text-sm bg-primary/50 outline-2 outline-dashed outline-primary p-2 rounded-full group">
@@ -192,7 +205,7 @@ export default function Workspace() {
                 className="w-full px-4 py-3 border border-border rounded-xl bg-bg-light focus:ring-1 focus:ring-primary focus:outline-none transition"
                 placeholder="flag{...}"
             />
-        </div>}
+        </main>}
         <CreateChallengeModal open={createChallengeModalOpen} onClose={() => setCreateChallengeModalOpen(false)} onCreate={() => workspaceStore.loadChallenges()}/>
     </div>
 }

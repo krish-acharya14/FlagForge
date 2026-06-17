@@ -51,6 +51,7 @@ public partial class MainWindow : Window
             case "loadChallenges": LoadChallenges(root); break;
             case "createChallenge": CreateChallenge(root); break;
             case "updateChallenge": UpdateChallenge(root); break;
+            case "createReadme": CreateReadme(root); break;
 
             case "minimizeWindow": WindowState = WindowState.Minimized; break;
             case "closeWindow": Close(); break;
@@ -204,6 +205,7 @@ public partial class MainWindow : Window
 
     private void LoadRecentWorkspaces() {
         var recentWorkspaces = NormalizeRecentWorkspaces(ReadRecentWorkspaces());
+        recentWorkspaces.RemoveAll(w => !Directory.Exists(w.Path));
         SaveRecentWorkspaces(recentWorkspaces);
 
         var workspaceObjs = recentWorkspaces.Select(w => new
@@ -399,10 +401,59 @@ public partial class MainWindow : Window
         if (payload.TryGetProperty("description", out var descriptionElement)) challenge.Description = descriptionElement.GetString() ?? "";
         if (payload.TryGetProperty("solution", out var solutionElement)) challenge.Solution = solutionElement.GetString() ?? "";
         if (payload.TryGetProperty("flag", out var flagElement)) challenge.Flag = flagElement.GetString() ?? "";
+        if (payload.TryGetProperty("tags", out var tagsElement)) challenge.Tags = [..tagsElement.EnumerateArray().Select(t => t.GetString() ?? "")];
 
         challenge.UpdatedAt = DateTime.UtcNow;
         File.WriteAllText(challengeFilePath, JsonSerializer.Serialize(challenge, JsonOptions));
 
         SendChallengeResult("updateChallengeResult", challenge);
+    }
+
+    private void CreateReadme(JsonElement root)
+    {
+        var payload = root.GetProperty("payload");
+        var workspacePath = payload.GetProperty("path").GetString()!;
+        var challengeTitle = payload.GetProperty("title").GetString()!;
+        
+        var challengePath = Path.Combine(GetChallengesRoot(workspacePath), challengeTitle);
+        var challengeFilePath = Path.Combine(challengePath, "challenge.json");
+        var challengeJson = ReadChallengeFile(challengeFilePath);
+        if (challengeJson == null)
+        {
+            SendMessage(new
+            {
+                type = "createReadmeFailed",
+                error = "Challenge not found."
+            });
+            return;
+        }
+
+        var readmePath = Path.Combine(challengePath, "README.md");
+        if(!File.Exists(readmePath)) File.Create(readmePath).Dispose();
+        var tags = string.Join(", ", challengeJson.Tags.Select(tag => $"`{tag}`"));
+        var readmeContent = $"""
+            # {challengeTitle}
+            ---
+
+            Tags: {tags}
+
+            ---
+
+            ## Description
+            {challengeJson.Description}
+
+            ---
+
+            ## Solution
+            {challengeJson.Solution}
+
+            ---
+
+            ## Flag
+            {challengeJson.Flag}
+
+            """;
+        File.WriteAllText(readmePath, readmeContent);
+        SendMessage(new { type = "createReadmeResult" });
     }
 }

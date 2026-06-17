@@ -13,7 +13,7 @@ type WorkspaceStore = {
     setChallenges: (challenges: Challenge[]) => void
     setActiveChallenge: (challenge: Challenge | null) => void
     loadChallenges: () => Promise<void>
-    updateActiveChallengeField: (field: 'description' | 'solution' | 'flag', value: string) => Promise<Challenge | null>
+    updateActiveChallengeField: (field: 'tags' | 'description' | 'solution' | 'flag', value: string | string[]) => Promise<Challenge | null>
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => ({
