@@ -17,4 +17,5 @@ export type Challenge = {
     flag: string
     createdAt: Date
     updatedAt: Date
+    attachments: string[]
 }
