@@ -12,6 +12,7 @@ export type Challenge = {
     title: string
     description: string
     tags: string[]
+    attachments: string[]
     solution: string
     flag: string
     createdAt: Date

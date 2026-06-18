@@ -52,6 +52,7 @@ public partial class MainWindow : Window
             case "createChallenge": CreateChallenge(root); break;
             case "updateChallenge": UpdateChallenge(root); break;
             case "createReadme": CreateReadme(root); break;
+            case "addAttachments": AddAttachments(root); break;
 
             case "minimizeWindow": WindowState = WindowState.Minimized; break;
             case "closeWindow": Close(); break;
@@ -455,5 +456,61 @@ public partial class MainWindow : Window
             """;
         File.WriteAllText(readmePath, readmeContent);
         SendMessage(new { type = "createReadmeResult" });
+    }
+
+    private void AddAttachments(JsonElement root)
+    {
+        var payload = root.GetProperty("payload");
+        var path = payload.GetProperty("path").GetString()!;
+        var challengeId = payload.GetProperty("id").GetGuid();
+
+        var challengeFilePath = FindChallengeFile(path, challengeId);
+        if (challengeFilePath == null)
+        {
+            SendMessage(new
+            {
+                type = "addAttachmentsFailed",
+                error = "Challenge not found."
+            });
+            return;
+        }
+
+        var challenge = ReadChallengeFile(challengeFilePath);
+        if (challenge == null)
+        {
+            SendMessage(new
+            {
+                type = "addAttachmentsFailed",
+                error = "Challenge could not be read."
+            });
+            return;
+        }
+        var challengePath = Path.GetDirectoryName(challengeFilePath)!;
+
+        var newAttachments = new List<string>();
+        foreach (var attachment in payload.GetProperty("attachmentData").EnumerateArray())
+        {
+            var fileName = attachment.GetProperty("name").GetString()!;
+            var fileContentBase64 = attachment.GetProperty("content").GetString()!;
+
+            var originalFileName = Path.GetFileNameWithoutExtension(fileName);
+            var extension = Path.GetExtension(fileName);
+            var counter = 1;
+            while (File.Exists(Path.Combine(challengePath, fileName)))
+            {
+                fileName = $"{originalFileName} ({counter}){extension}";
+                counter++;
+            }
+
+            var filePath = Path.Combine(challengePath, fileName);
+            File.WriteAllBytes(filePath, Convert.FromBase64String(fileContentBase64));
+            newAttachments.Add(fileName);
+        }
+
+        challenge.Attachments = challenge.Attachments.Concat(newAttachments).ToArray();
+        challenge.UpdatedAt = DateTime.UtcNow;
+        File.WriteAllText(challengeFilePath, JsonSerializer.Serialize(challenge, JsonOptions));
+
+        SendChallengeResult("addAttachmentsResult", challenge);
     }
 }

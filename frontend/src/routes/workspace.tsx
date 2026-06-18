@@ -8,6 +8,7 @@ import CreateChallengeModal from '../components/CreateChallengeModal'
 import { sendCommand } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { Commands } from '../utils/commands'
+import AddAttachmentsOverlay from '../components/AddAttachmentsOverlay'
 
 const CTF_DEFAULT_TAGS = [
     'pwn', 'forensics', 'cryptography', 'web', 'reversing',
@@ -20,50 +21,50 @@ export default function Workspace() {
     const navigate = useNavigate()
     const workspaceStore = useWorkspaceStore()
     const [createChallengeModalOpen, setCreateChallengeModalOpen] = useState(false)
+    const [attachmentsOverlayOpen, setAttachmentsOverlayOpen] = useState(false)
 
     const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
     const [tagInput, setTagInput] = useState('')
     const tagDropdownRef = useRef<HTMLDivElement>(null)
     const tagInputRef = useRef<HTMLInputElement>(null)
 
-    const [draggedId, setDraggedId] = useState<string | null>(null);
-    const [dragOverId, setDragOverId] = useState<string | null>(null);
+    const [draggedId, setDraggedId] = useState<string | null>(null)
+    const [dragOverId, setDragOverId] = useState<string | null>(null)
 
     const displayChallenges = useMemo(() => {
-        const base = workspaceStore.challenges;
-        if (!draggedId || !dragOverId || draggedId === dragOverId) return base;
+        const base = workspaceStore.challenges
+        if (!draggedId || !dragOverId || draggedId === dragOverId) return base
+        const arr = [...base]
+        const fromIdx = arr.findIndex(c => c.id === draggedId)
+        const toIdx = arr.findIndex(c => c.id === dragOverId)
 
-        const arr = [...base];
-        const fromIdx = arr.findIndex(c => c.id === draggedId);
-        const toIdx = arr.findIndex(c => c.id === dragOverId);
+        if (fromIdx === -1 || toIdx === -1) return arr
 
-        if (fromIdx === -1 || toIdx === -1) return arr;
-
-        const [item] = arr.splice(fromIdx, 1);
-        arr.splice(toIdx, 0, item);
-        return arr;
+        const [item] = arr.splice(fromIdx, 1)
+        arr.splice(toIdx, 0, item)
+        return arr
     }, [workspaceStore.challenges, draggedId, dragOverId])
 
     const handleDragStart = (id: string) => {
-        setDraggedId(id);
-        setDragOverId(id);
+        setDraggedId(id)
+        setDragOverId(id)
     }
 
     const handleDragOver = (e: React.DragEvent, id: string) => {
-        e.preventDefault();
-        if (draggedId && draggedId !== id) setDragOverId(id);
+        e.preventDefault()
+        if (draggedId && draggedId !== id) setDragOverId(id)
     }
 
     const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        if (draggedId) workspaceStore.setChallenges(displayChallenges);
-        setDraggedId(null);
-        setDragOverId(null);
+        e.preventDefault()
+        if (draggedId) workspaceStore.setChallenges(displayChallenges)
+        setDraggedId(null)
+        setDragOverId(null)
     }
 
     const handleDragEnd = () => {
-        setDraggedId(null);
-        setDragOverId(null);
+        setDraggedId(null)
+        setDragOverId(null)
     }
  
     const mdPlugins = [
@@ -140,22 +141,38 @@ export default function Workspace() {
     const nothingToShow = !tagInput.trim() && ctfTagsToShow.length === 0 && filteredExistingTags.length === 0
 
     const getChallengeButtonClass = (challengeId: string, flag: string) => {
-        const isActive = activeChallenge?.id === challengeId;
-        const isCompleted = /^.+\{.+\}$/.test(flag.trim());
+        const isActive = activeChallenge?.id === challengeId
+        const isCompleted = /^.+\{.+\}$/.test(flag.trim())
 
         if (isCompleted && isActive) 
-            return 'bg-green-700/60 text-green-100 ring-1 ring-green-500/50';
+            return 'bg-green-700/60 text-green-100 ring-1 ring-green-500/50'
 
         if (isCompleted && !isActive) 
-            return 'bg-green-900/30 hover:bg-green-900/50 border border-green-600/30 text-green-300';
+            return 'bg-green-900/30 hover:bg-green-900/50 border border-green-600/30 text-green-300'
 
         if (!isCompleted && isActive) 
-            return 'bg-primary';
+            return 'bg-primary'
 
-        return 'bg-border/50 hover:bg-border';
+        return 'bg-border/50 hover:bg-border'
     }
-
-    return <div className="min-h-[calc(100vh-3rem)] flex">
+    return <div
+        className="min-h-[calc(100vh-3rem)] flex"
+        onDragOver={e => {
+            e.preventDefault()
+            if(activeChallenge) setAttachmentsOverlayOpen(true)
+        }}
+        onDragLeave={e => {
+            e.preventDefault()
+            setAttachmentsOverlayOpen(false)
+        }}
+        onDrop={e => {
+            e.preventDefault()
+            setAttachmentsOverlayOpen(false)
+            if(!activeChallenge) return
+            const files = Array.from(e.dataTransfer.files)
+            workspaceStore.addAttachmentsToActiveChallenge(files)
+        }}
+    >
         <aside className="flex flex-col gap-2 w-[20vw] p-6 bg-bg-light border-r border-border">
             <h1 className="font-semibold uppercase tracking-wider">Workspace</h1>
             <span className="text-sm line-clamp-1 text-muted">{workspaceStore.name}</span>
@@ -209,7 +226,9 @@ export default function Workspace() {
                 <h2 className="text-xl mt-2 text-muted/90">{workspaceStore.name}</h2>
                 <span className="text-muted mt-2">Your CTF workspace is ready.</span>
             </main>
-            : <main className="flex flex-col gap-2 p-6 flex-1">
+            : <main
+                className="flex flex-col gap-2 p-6 flex-1"
+            >
                 <div className="flex flex-row justify-between items-center">
                     <h1 className="text-4xl">{activeChallenge.title}</h1>
                     <button onClick={handleCreateReadme} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faDownload} /></button>
@@ -292,5 +311,6 @@ export default function Workspace() {
             />
         </main>}
         <CreateChallengeModal open={createChallengeModalOpen} onClose={() => setCreateChallengeModalOpen(false)} onCreate={() => workspaceStore.loadChallenges()}/>
+        <AddAttachmentsOverlay open={attachmentsOverlayOpen} />
     </div>
 }
