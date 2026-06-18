@@ -12,6 +12,7 @@
     --muted: #828286;
     --bg-light: #1c1c1e;
     --border: #313133;
+    --success: #0b592c;
 }
 
 @theme inline {
@@ -22,6 +23,7 @@
     --color-muted: var(--muted);
     --color-bg-light: var(--bg-light);
     --color-border: var(--border);
+    --color-success: var(--success);
 }
 
 ._contentEditable_f3hmk_379 ul {

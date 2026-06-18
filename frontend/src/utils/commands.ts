@@ -7,6 +7,8 @@ export const Commands = {
     LoadChallenges: 'loadChallenges',
     CreateChallenge: 'createChallenge',
     UpdateChallenge: 'updateChallenge',
+    DeleteChallenge: 'deleteChallenge',
     CreateReadme: 'createReadme',
-    AddAttachments: 'addAttachments'
+    AddAttachments: 'addAttachments',
+    ReorderChallenges: 'reorderChallenges'
 } as const

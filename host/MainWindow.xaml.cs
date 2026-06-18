@@ -51,8 +51,10 @@ public partial class MainWindow : Window
             case "loadChallenges": LoadChallenges(root); break;
             case "createChallenge": CreateChallenge(root); break;
             case "updateChallenge": UpdateChallenge(root); break;
+            case "deleteChallenge": DeleteChallenge(root); break;
             case "createReadme": CreateReadme(root); break;
             case "addAttachments": AddAttachments(root); break;
+            case "reorderChallenges": ReorderChallenges(root); break;
 
             case "minimizeWindow": WindowState = WindowState.Minimized; break;
             case "closeWindow": Close(); break;
@@ -155,8 +157,10 @@ public partial class MainWindow : Window
             title = challenge.Title,
             description = challenge.Description,
             tags = challenge.Tags,
+            attachments = challenge.Attachments,
             solution = challenge.Solution,
             flag = challenge.Flag,
+            order = challenge.Order,
             createdAt = challenge.CreatedAt,
             updatedAt = challenge.UpdatedAt
         };
@@ -410,6 +414,33 @@ public partial class MainWindow : Window
         SendChallengeResult("updateChallengeResult", challenge);
     }
 
+    private void DeleteChallenge(JsonElement root)
+    {
+        var payload = root.GetProperty("payload");
+        var workspacePath = payload.GetProperty("path").GetString()!;
+        var challengeId = payload.GetProperty("id").GetGuid();
+
+        var challengeFilePath = FindChallengeFile(workspacePath, challengeId);
+        if (challengeFilePath == null)
+        {
+            SendMessage(new
+            {
+                type = "deleteChallengeFailed",
+                error = "Challenge not found."
+            });
+            return;
+        }
+
+        var challengePath = Path.GetDirectoryName(challengeFilePath)!;
+        Directory.Delete(challengePath, true);
+
+        SendMessage(new
+        {
+            type = "deleteChallengeResult",
+            data = challengeId
+        });
+    }
+
     private void CreateReadme(JsonElement root)
     {
         var payload = root.GetProperty("payload");
@@ -487,30 +518,47 @@ public partial class MainWindow : Window
         }
         var challengePath = Path.GetDirectoryName(challengeFilePath)!;
 
-        var newAttachments = new List<string>();
-        foreach (var attachment in payload.GetProperty("attachmentData").EnumerateArray())
+        var dialog = new OpenFileDialog()
         {
-            var fileName = attachment.GetProperty("name").GetString()!;
-            var fileContentBase64 = attachment.GetProperty("content").GetString()!;
+            Title = "Select Attachments",
+            Multiselect = true
+        };
+        if (dialog.ShowDialog() != true) return;
 
-            var originalFileName = Path.GetFileNameWithoutExtension(fileName);
-            var extension = Path.GetExtension(fileName);
-            var counter = 1;
-            while (File.Exists(Path.Combine(challengePath, fileName)))
-            {
-                fileName = $"{originalFileName} ({counter}){extension}";
-                counter++;
-            }
+        foreach (var file in dialog.FileNames)
+        {
+            var fileName = Path.GetFileName(file);
+            var destPath = Path.Combine(challengePath, fileName);
 
-            var filePath = Path.Combine(challengePath, fileName);
-            File.WriteAllBytes(filePath, Convert.FromBase64String(fileContentBase64));
-            newAttachments.Add(fileName);
+            File.Copy(file, destPath, true);
+            if (!challenge.Attachments.Contains(fileName)) challenge.Attachments.Add(fileName);
         }
-
-        challenge.Attachments = challenge.Attachments.Concat(newAttachments).ToArray();
         challenge.UpdatedAt = DateTime.UtcNow;
         File.WriteAllText(challengeFilePath, JsonSerializer.Serialize(challenge, JsonOptions));
 
         SendChallengeResult("addAttachmentsResult", challenge);
+    }
+
+    private void ReorderChallenges(JsonElement root) {
+        var payload = root.GetProperty("payload");
+        var path = payload.GetProperty("path").GetString()!;
+        var challengeOrders = payload.GetProperty("challenges").EnumerateArray().Select(c => new {
+            id = c.GetProperty("id").GetGuid(),
+            order = c.GetProperty("order").GetInt32()
+        }).ToDictionary(c => c.id, c => c.order);
+
+        foreach (var challenge in challengeOrders.Keys)
+        {
+            var challengeFilePath = FindChallengeFile(path, challenge);
+            if (challengeFilePath == null) continue;
+
+            var challengeData = ReadChallengeFile(challengeFilePath);
+            if (challengeData == null) continue;
+
+            challengeData.Order = challengeOrders[challenge];
+            challengeData.UpdatedAt = DateTime.UtcNow;
+            File.WriteAllText(challengeFilePath, JsonSerializer.Serialize(challengeData, JsonOptions));
+        }
+        SendMessage(new { type = "reorderChallengesResult" });
     }
 }

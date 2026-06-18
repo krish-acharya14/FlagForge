@@ -1,14 +1,14 @@
-import { faDownload, faPlus, faTag, faXmark, faGripVertical, faFile } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faFile, faFileCirclePlus, faGripVertical, faPlus, faTag, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { BlockTypeSelect, BoldItalicUnderlineToggles, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
 import CreateChallengeModal from '../components/CreateChallengeModal'
 import { sendCommand } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { Commands } from '../utils/commands'
-import AddAttachmentsOverlay from '../components/AddAttachmentsOverlay'
 
 const CTF_DEFAULT_TAGS = [
     'pwn', 'forensics', 'cryptography', 'web', 'reversing',
@@ -21,7 +21,7 @@ export default function Workspace() {
     const navigate = useNavigate()
     const workspaceStore = useWorkspaceStore()
     const [createChallengeModalOpen, setCreateChallengeModalOpen] = useState(false)
-    const [attachmentsOverlayOpen, setAttachmentsOverlayOpen] = useState(false)
+    const [deleteChallengeModalOpen, setDeleteChallengeModalOpen] = useState(false)
 
     const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
     const [tagInput, setTagInput] = useState('')
@@ -31,20 +31,6 @@ export default function Workspace() {
     const [draggedId, setDraggedId] = useState<string | null>(null)
     const [dragOverId, setDragOverId] = useState<string | null>(null)
 
-    const displayChallenges = useMemo(() => {
-        const base = workspaceStore.challenges
-        if (!draggedId || !dragOverId || draggedId === dragOverId) return base
-        const arr = [...base]
-        const fromIdx = arr.findIndex(c => c.id === draggedId)
-        const toIdx = arr.findIndex(c => c.id === dragOverId)
-
-        if (fromIdx === -1 || toIdx === -1) return arr
-
-        const [item] = arr.splice(fromIdx, 1)
-        arr.splice(toIdx, 0, item)
-        return arr
-    }, [workspaceStore.challenges, draggedId, dragOverId])
-
     const handleDragStart = (id: string) => {
         setDraggedId(id)
         setDragOverId(id)
@@ -52,12 +38,27 @@ export default function Workspace() {
 
     const handleDragOver = (e: React.DragEvent, id: string) => {
         e.preventDefault()
-        if (draggedId && draggedId !== id) setDragOverId(id)
+        if(draggedId && draggedId !== id) setDragOverId(id)
     }
 
-    const handleDrop = (e: React.DragEvent) => {
+    const handleDrop = async(e: React.DragEvent) => {
         e.preventDefault()
-        if (draggedId) workspaceStore.setChallenges(displayChallenges)
+        if(draggedId && dragOverId && draggedId !== dragOverId) {
+            const reordered = [...workspaceStore.challenges]
+            const draggedIndex = reordered.findIndex(c => c.id === draggedId)
+            const dragOverIndex = reordered.findIndex(c => c.id === dragOverId)
+            if(draggedIndex !== -1 && dragOverIndex !== -1) {
+            const [draggedChallenge] = reordered.splice(draggedIndex, 1)
+                reordered.splice(dragOverIndex, 0, draggedChallenge)
+                const updatedChallenges = reordered.map((c, index) => ({ ...c, order: index }))
+                workspaceStore.setChallenges(updatedChallenges)
+                try { await sendCommand(Commands.ReorderChallenges, { path: workspaceStore.path, challenges: updatedChallenges.map(c => ({ id: c.id, order: c.order })) }) }
+                catch(err) {
+                    console.error('Error reordering challenges:', err)
+                    await workspaceStore.loadChallenges()
+                }
+            }
+        }
         setDraggedId(null)
         setDragOverId(null)
     }
@@ -129,6 +130,18 @@ export default function Workspace() {
         await sendCommand(Commands.CreateReadme, { path: workspaceStore.path, title: activeChallenge.title })
     }
 
+    const handleDeleteChallenge = async() => {
+        if(!activeChallenge) return
+        await sendCommand(Commands.DeleteChallenge, { path: workspaceStore.path, id: activeChallenge.id })
+        workspaceStore.loadChallenges()
+    }
+
+    const handleAddAttachments = async() => {
+        if(!activeChallenge) return
+        await sendCommand(Commands.AddAttachments, { path: workspaceStore.path, id: activeChallenge.id })
+        workspaceStore.loadChallenges()
+    }
+
     const allExistingTags = activeChallenge
         ? Array.from(new Set(challenges.flatMap(c => c.tags))).filter(tag => !activeChallenge.tags.includes(tag)
     ) : []
@@ -144,35 +157,13 @@ export default function Workspace() {
         const isActive = activeChallenge?.id === challengeId
         const isCompleted = /^.+\{.+\}$/.test(flag.trim())
 
-        if (isCompleted && isActive) 
-            return 'bg-green-700/60 text-green-100 ring-1 ring-green-500/50'
-
-        if (isCompleted && !isActive) 
-            return 'bg-green-900/30 hover:bg-green-900/50 border border-green-600/30 text-green-300'
-
-        if (!isCompleted && isActive) 
-            return 'bg-primary'
-
+        if(isCompleted && isActive) return 'bg-success border border-text/20'
+        if(isCompleted && !isActive) return 'bg-success/30 hover:bg-success/50 border border-text/10 text-text/90'
+        if(!isCompleted && isActive) return 'bg-primary'
         return 'bg-border/50 hover:bg-border'
     }
-    return <div
-        className="min-h-[calc(100vh-3rem)] flex"
-        onDragOver={e => {
-            e.preventDefault()
-            if(activeChallenge) setAttachmentsOverlayOpen(true)
-        }}
-        onDragLeave={e => {
-            e.preventDefault()
-            setAttachmentsOverlayOpen(false)
-        }}
-        onDrop={e => {
-            e.preventDefault()
-            setAttachmentsOverlayOpen(false)
-            if(!activeChallenge) return
-            const files = Array.from(e.dataTransfer.files)
-            workspaceStore.addAttachmentsToActiveChallenge(files)
-        }}
-    >
+
+    return <div className="min-h-[calc(100vh-3rem)] flex">
         <aside className="flex flex-col gap-2 w-[20vw] p-6 bg-bg-light border-r border-border">
             <h1 className="font-semibold uppercase tracking-wider">Workspace</h1>
             <span className="text-sm line-clamp-1 text-muted">{workspaceStore.name}</span>
@@ -184,54 +175,58 @@ export default function Workspace() {
             </div>
             {challenges.length === 0
                 ? <span className="text-sm text-muted">No challenges found.</span>
-                : displayChallenges.map(challenge => {
+                : challenges.map(challenge => {
                     const isActive = activeChallenge?.id === challenge.id
                     const isCompleted = /^.+\{.+\}$/.test(challenge.flag.trim())
                     const attachments = challenge.attachments ?? []
-                    return (
-                     <div key={challenge.id} draggable onDragStart={() => handleDragStart(challenge.id)} onDragOver={(e) => handleDragOver(e, challenge.id)} onDrop={handleDrop} onDragEnd={handleDragEnd} className={`group flex items-center gap-1 rounded-xl transition-all duration-150 
-                            ${draggedId === challenge.id ? 'opacity-40 scale-[0.97]' : '' } ${ dragOverId === challenge.id && draggedId !== challenge.id ? 'ring-1 ring-primary/60' : ''}`}>
-                        <span className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted px-1 opacity-0 group-hover:opacity-40 hover:opacity-90! transition-opacity select-none mt-2.5" title="Drag to reorder">
+                    return <div
+                        key={challenge.id}
+                        draggable
+                        onDragStart={() => handleDragStart(challenge.id)}
+                        onDragOver={(e) => handleDragOver(e, challenge.id)}
+                        onDrop={handleDrop}
+                        onDragEnd={handleDragEnd}
+                        className={`group flex items-center gap-1 rounded-xl transition-all duration-150 ${draggedId === challenge.id ? 'opacity-40 scale-[0.97]' : '' } ${ dragOverId === challenge.id && draggedId !== challenge.id ? 'ring-1 ring-primary/60' : ''}`}
+                    >
+                        <span className="shrink-0 cursor-grab active:cursor-grabbing text-muted px-1 opacity-0 group-hover:opacity-40 hover:opacity-90! transition-opacity select-none mt-2.5" title="Drag to reorder">
                             <FontAwesomeIcon icon={faGripVertical} className="text-xs" />
                         </span>
                         <button onClick={() => workspaceStore.setActiveChallenge(challenge)} className={`text-left flex-1 min-w-0 p-2 rounded-xl cursor-pointer transition ${getChallengeButtonClass(challenge.id, challenge.flag)}`}>
                             <div className="line-clamp-1 font-medium">{challenge.title}</div>
-                            {isActive && (<>
-                                {challenge.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-1.5"> 
-                                        {challenge.tags.slice(0,3).map(tag => (
-                                            <span key={tag} className={`text-[10px] px-1.5 rounded-full ${isCompleted ? 'bg-green-900/50 text-green-300' : 'bg-primary/30 text-text/80'}`}>{tag}</span>
-                                        ))}
-                                        {challenge.tags.length > 3 && (
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-border/60 text-muted">+{challenge.tags.length - 3}</span>
-                                        )}
-                                    </div>
-                                )} 
-                                {attachments.length > 0 && (
-                                    <div className={`flex items-center gap-1 mt-1.5 text-[10px] ${isCompleted ? 'text-green-400/70' : 'text-muted'}`}>
-                                        <FontAwesomeIcon icon={faFile} className="text-[9px]"/>
-                                        <span>{attachments.length} attachment{attachments.length != 1 ? 's' : ''}</span>
-                                    </div>
-                                )}   
-                            </>)}
+                            {isActive && <>
+                                {challenge.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5"> 
+                                    {challenge.tags.slice(0,2).map(tag => (
+                                        <span key={tag} className={`text-[10px] px-1.5 rounded-full ${isCompleted ? 'bg-text/10 text-text/90' : 'bg-text/30 text-text/80'}`}>{tag}</span>
+                                    ))}
+                                    {challenge.tags.length > 2 && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-text/10 text-text/90">+{challenge.tags.length - 2}</span>
+                                    )}
+                                </div>} 
+                                {attachments.length > 0 && <div className="flex items-center gap-1 mt-1.5 text-[10px] text-text/90">
+                                    <FontAwesomeIcon icon={faFile} className="text-[9px]"/>
+                                    <span>{attachments.length} attachment{attachments.length != 1 ? 's' : ''}</span>
+                                </div>}   
+                            </>}
                         </button>
                     </div>
-                    )
                 })
             }
         </aside>
+
         {!activeChallenge
             ? <main className="flex flex-col items-center justify-center flex-1 p-6">
                 <h1 className="text-3xl">Welcome to your Workspace!</h1>
                 <h2 className="text-xl mt-2 text-muted/90">{workspaceStore.name}</h2>
                 <span className="text-muted mt-2">Your CTF workspace is ready.</span>
             </main>
-            : <main
-                className="flex flex-col gap-2 p-6 flex-1"
-            >
+            : <main className="flex flex-col gap-2 p-6 flex-1">
                 <div className="flex flex-row justify-between items-center">
                     <h1 className="text-4xl">{activeChallenge.title}</h1>
-                    <button onClick={handleCreateReadme} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faDownload} /></button>
+                    <div className="flex flex-row gap-2 items-center">
+                        <button onClick={handleAddAttachments} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faFileCirclePlus} /></button>
+                        <button onClick={handleCreateReadme} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faDownload} /></button>
+                        <button onClick={() => setDeleteChallengeModalOpen(true)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faTrash} /></button>
+                    </div>
                 </div>
                 <hr className="my-2 border-border" />
                 <div className="flex flex-row gap-4 flex-wrap items-center">
@@ -310,7 +305,7 @@ export default function Workspace() {
                 placeholder="flag{...}"
             />
         </main>}
-        <CreateChallengeModal open={createChallengeModalOpen} onClose={() => setCreateChallengeModalOpen(false)} onCreate={() => workspaceStore.loadChallenges()}/>
-        <AddAttachmentsOverlay open={attachmentsOverlayOpen} />
+        <CreateChallengeModal open={createChallengeModalOpen} onClose={() => setCreateChallengeModalOpen(false)} onCreate={() => workspaceStore.loadChallenges()} />
+        <ConfirmDeleteModal open={deleteChallengeModalOpen} onClose={() => setDeleteChallengeModalOpen(false)} onConfirm={handleDeleteChallenge} />
     </div>
 }

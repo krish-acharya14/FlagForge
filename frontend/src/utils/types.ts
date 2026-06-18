@@ -15,7 +15,7 @@ export type Challenge = {
     attachments: string[]
     solution: string
     flag: string
+    order: number
     createdAt: Date
     updatedAt: Date
-    attachments: string[]
 }
