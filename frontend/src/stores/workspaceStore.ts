@@ -4,16 +4,25 @@ import { sendCommand } from '../services/host'
 import { Commands } from '../utils/commands'
 import type { Challenge } from '../utils/types'
 
+type FilterStatus = 'all' | 'solved' | 'unsolved'
+
 type WorkspaceStore = {
     name: string
     path: string
     challenges: Challenge[]
     activeChallenge: Challenge | null
+    searchQuery: string
+    filterTags: string[]
+    filterStatus: FilterStatus
     setWorkspace: (name: string, path: string) => void
     setChallenges: (challenges: Challenge[]) => void
     setActiveChallenge: (challenge: Challenge | null) => void
     loadChallenges: () => Promise<void>
     updateActiveChallengeField: (field: 'tags' | 'description' | 'solution' | 'flag', value: string | string[]) => Promise<Challenge | null>
+    setSearchQuery: (query: string) => void
+    toggleFilterTag: (tag: string) => void
+    setFilterStatus: (status: FilterStatus) => void
+    clearFilters: () => void
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => ({
@@ -21,16 +30,19 @@ export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => 
     path: '',
     challenges: [],
     activeChallenge: null,
-    setWorkspace: (name, path) => set({ name, path }),
+    searchQuery: '',
+    filterTags: [],
+    filterStatus: 'all',
+    setWorkspace: (name, path) => set({name, path}),
     setChallenges: (challenges) => set(state => ({
         challenges,
         activeChallenge: state.activeChallenge
             ? challenges.find(challenge => challenge.id === state.activeChallenge?.id) ?? null
             : null
     })),
-    setActiveChallenge: (challenge) => set({ activeChallenge: challenge }),
+    setActiveChallenge: (challenge) => set({activeChallenge: challenge }),
     loadChallenges: async () => {
-        const fetchedChallenges = await sendCommand<Challenge[]>(Commands.LoadChallenges, { path: get().path })
+        const fetchedChallenges = await sendCommand<Challenge[]>(Commands.LoadChallenges, {path : get().path})
         set(state => ({
             challenges: fetchedChallenges.sort((a,b) => a.order - b.order),
             activeChallenge: state.activeChallenge
@@ -38,10 +50,10 @@ export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => 
                 : null
         }))
     },
-    updateActiveChallengeField: async (field, value) => {
+    updateActiveChallengeField: async (field: 'tags' | 'description' | 'solution' | 'flag', value: string | string[]) => {
         const current = get().activeChallenge
-        if(!current) return null
-
+        if (!current) return null
+        
         const updatedChallenge = await sendCommand<Challenge>(Commands.UpdateChallenge, {
             path: get().path,
             id: current.id,
@@ -52,7 +64,22 @@ export const useWorkspaceStore = create<WorkspaceStore>()(persist((set, get) => 
             challenges: state.challenges.map(challenge => challenge.id === updatedChallenge.id ? updatedChallenge : challenge),
             activeChallenge: updatedChallenge
         }))
-
         return updatedChallenge
     },
-}), { name: 'workspace-store' }))
+    setSearchQuery: (query) => set({ searchQuery: query }),
+    toggleFilterTag: (tag) => set(state => ({
+        filterTags: state.filterTags.includes(tag)
+            ? state.filterTags.filter(t => t !== tag)
+            : [...state.filterTags, tag]
+    })),
+    setFilterStatus: (status) => set({ filterStatus: status}),
+    clearFilters: () => set({ searchQuery: '', filterTags: [], filterStatus: 'all'}),
+}), {
+    name: 'workspace-store',
+    partialize: (state) => ({
+        name: state.name,
+        path: state.path,
+        challenges: state.challenges,
+        activeChallenge: state.activeChallenge,
+    })
+}))
