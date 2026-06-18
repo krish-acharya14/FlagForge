@@ -10,5 +10,6 @@ export const Commands = {
     DeleteChallenge: 'deleteChallenge',
     CreateReadme: 'createReadme',
     AddAttachments: 'addAttachments',
-    ReorderChallenges: 'reorderChallenges'
+    ReorderChallenges: 'reorderChallenges',
+    UpdateDiscordRPC: 'updateDiscordRPC',
 } as const

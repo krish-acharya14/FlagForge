@@ -24,6 +24,7 @@ export default function Launcher() {
             const workspaces = await sendCommand<Workspace[]>(Commands.LoadRecentWorkspaces)
             const sortedWorkspaces = workspaces.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
             setRecentWorkspaces(sortedWorkspaces)
+            await sendCommand(Commands.UpdateDiscordRPC, { details: "Launcher", state: "Browsing Workspaces" })
         }
         load()
     }, [])

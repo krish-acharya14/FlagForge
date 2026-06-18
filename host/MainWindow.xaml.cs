@@ -1,4 +1,5 @@
 ﻿using FlagForgeHost.Models;
+using FlagForgeHost.Services;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Win32;
 using System.IO;
@@ -13,6 +14,7 @@ namespace FlagForgeHost;
 
 public partial class MainWindow : Window
 {
+    private readonly DiscordService _discord;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -23,7 +25,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _discord = new DiscordService();
         Loaded += MainWindow_Loaded;
+        Closed += MainWindow_Closed;
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -32,6 +36,11 @@ public partial class MainWindow : Window
         WebView.CoreWebView2.WebMessageReceived += WebMessageReceived;
         WebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
         WebView.Source = new Uri("http://localhost:5173");
+    }
+
+    private void MainWindow_Closed(object? sender, EventArgs e)
+    {
+        _discord.Shutdown();
     }
 
     private async void WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -55,6 +64,7 @@ public partial class MainWindow : Window
             case "createReadme": CreateReadme(root); break;
             case "addAttachments": AddAttachments(root); break;
             case "reorderChallenges": ReorderChallenges(root); break;
+            case "updateDiscordRPC": UpdateDiscordRPC(root); break;
 
             case "minimizeWindow": WindowState = WindowState.Minimized; break;
             case "closeWindow": Close(); break;
@@ -560,5 +570,13 @@ public partial class MainWindow : Window
             File.WriteAllText(challengeFilePath, JsonSerializer.Serialize(challengeData, JsonOptions));
         }
         SendMessage(new { type = "reorderChallengesResult" });
+    }
+
+    private void UpdateDiscordRPC(JsonElement root)
+    {
+        var payload = root.GetProperty("payload");
+        var details = payload.GetProperty("details").GetString() ?? "";
+        var state = payload.GetProperty("state").GetString() ?? "";
+        _discord.UpdateRichPresence(details, state);
     }
 }

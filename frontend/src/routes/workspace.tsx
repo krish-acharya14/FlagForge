@@ -84,7 +84,12 @@ export default function Workspace() {
     useEffect(() => {
         if(!workspaceStore.name) navigate('/')
         workspaceStore.loadChallenges()
+        sendCommand(Commands.UpdateDiscordRPC, { details: `Workspace: ${workspaceStore.name}`, state: activeChallenge ? `Editing Challenge: ${activeChallenge.title}` : "Browsing Challenges" })
     }, [])
+
+    useEffect(() => {
+        sendCommand(Commands.UpdateDiscordRPC, { details: `Workspace: ${workspaceStore.name}`, state: activeChallenge ? `Editing Challenge: ${activeChallenge.title}` : "Browsing Challenges" })
+    }, [activeChallenge])
 
     useEffect(() => {
         if(tagDropdownOpen) tagInputRef.current?.focus()
