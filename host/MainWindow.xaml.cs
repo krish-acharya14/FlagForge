@@ -1,5 +1,6 @@
 ﻿using FlagForgeHost.Models;
 using FlagForgeHost.Services;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Win32;
 using System.IO;
@@ -207,6 +208,26 @@ public partial class MainWindow : Window
         SaveRecentWorkspaces(recentWorkspaces);
     }
 
+    private static void LoadAttachments(string path, Challenge challenge)
+    {
+        var challengePath = Path.Combine(GetChallengesRoot(path), challenge.Title);
+        if (!Directory.Exists(challengePath)) return;
+
+        var files = Directory.GetFiles(challengePath).Select(Path.GetFileName).Where(f => f != "challenge.json").ToList();
+        var attachmentsToAdd = files.Except(challenge.Attachments).ToList();
+        var attachmentsToRemove = challenge.Attachments.Except(files).ToList();
+
+        foreach (var attachment in attachmentsToAdd) challenge.Attachments.Add(attachment!);
+        foreach (var attachment in attachmentsToRemove) challenge.Attachments.Remove(attachment!);
+        
+        if (attachmentsToAdd.Count > 0 || attachmentsToRemove.Count > 0)
+        {
+            challenge.UpdatedAt = DateTime.UtcNow;
+            var challengeFilePath = FindChallengeFile(path, challenge.Id);
+            if (challengeFilePath != null) File.WriteAllText(challengeFilePath, JsonSerializer.Serialize(challenge, JsonOptions));
+        }
+    }
+
     private void PickFolder()
     {
         var dialog = new OpenFolderDialog() { Title = "Select Workspace Location" };
@@ -332,6 +353,11 @@ public partial class MainWindow : Window
         var path = payload.GetProperty("path").GetString()!;
 
         var challenges = ReadChallenges(path).Select(ToChallengePayload).ToArray();
+        foreach (var challenge in challenges)
+        {
+            var challengeObj = JsonSerializer.Deserialize<Challenge>(JsonSerializer.Serialize(challenge, JsonOptions), JsonOptions);
+            if (challengeObj != null) LoadAttachments(path, challengeObj);
+        }
 
         SendMessage(new
         {
@@ -625,10 +651,17 @@ public partial class MainWindow : Window
 
         var attachmentBytes = File.ReadAllBytes(attachmentPath);
         var attachmentBase64 = Convert.ToBase64String(attachmentBytes);
-        var base64Formats = new[] { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".pdf" };
-        var attachment = !base64Formats.Contains(Path.GetExtension(name).ToLowerInvariant())
+        var nonBase64Formats = new[]
+        {
+            ".c", ".cpp", ".py", ".js", ".java", ".html", ".css", ".json", ".txt", ".ts", ".md"
+        };
+        var attachment = nonBase64Formats.Contains(Path.GetExtension(name).ToLowerInvariant())
             ? File.ReadAllText(attachmentPath)
             : attachmentBase64;
+
+        var provider = new FileExtensionContentTypeProvider();
+        if (!provider.TryGetContentType(name, out var mimeType)) mimeType = "application/octet-stream";
+
         SendMessage(new
         {
             type = "getAttachmentResult",
@@ -636,7 +669,8 @@ public partial class MainWindow : Window
             {
                 name,
                 content = attachment,
-                type = Path.GetExtension(name).ToLowerInvariant()
+                type = Path.GetExtension(name).ToLowerInvariant(),
+                mimeType
             }
         });
     }

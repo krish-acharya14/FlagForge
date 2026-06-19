@@ -4,6 +4,7 @@ import { BlockTypeSelect, BoldItalicUnderlineToggles, headingsPlugin, linkPlugin
 import '@mdxeditor/editor/style.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import AddAttachmentsModal from '../components/AddAttachmentsModal'
 import AttachmentRenderer from '../components/AttachmentRenderer'
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
 import CreateChallengeModal from '../components/CreateChallengeModal'
@@ -26,6 +27,7 @@ export default function Workspace() {
 
     const [createChallengeModalOpen, setCreateChallengeModalOpen] = useState(false)
     const [deleteChallengeModalOpen, setDeleteChallengeModalOpen] = useState(false)
+    const [addAttachmentsModalOpen, setAddAttachmentsModalOpen] = useState(false)
     const [filterOpen, setFilterOpen] = useState(false)
 
     const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
@@ -182,12 +184,6 @@ export default function Workspace() {
         workspaceStore.loadChallenges()
     }
 
-    const handleAddAttachments = async() => {
-        if(!activeChallenge) return
-        await sendCommand(Commands.AddAttachments, { path: workspaceStore.path, id: activeChallenge.id })
-        workspaceStore.loadChallenges()
-    }
-
     const allExistingTags = activeChallenge
         ? Array.from(new Set(challenges.flatMap(c => c.tags))).filter(tag => !activeChallenge.tags.includes(tag)
     ) : []
@@ -321,7 +317,7 @@ export default function Workspace() {
                     <div className="flex flex-row justify-between items-center">
                         <h1 className="text-4xl">{activeChallenge.title}</h1>
                         <div className="flex flex-row gap-2 items-center">
-                            <button onClick={handleAddAttachments} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faFileCirclePlus} /></button>
+                            <button onClick={() => setAddAttachmentsModalOpen(true)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faFileCirclePlus} /></button>
                             <button onClick={handleCreateReadme} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faDownload} /></button>
                             <button onClick={() => setDeleteChallengeModalOpen(true)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faTrash} /></button>
                         </div>
@@ -397,5 +393,6 @@ export default function Workspace() {
             : <AttachmentRenderer open={view === 'attachment'} attachment={attachmentToView || ''} />}
         <CreateChallengeModal open={createChallengeModalOpen} onClose={() => setCreateChallengeModalOpen(false)} onCreate={() => workspaceStore.loadChallenges()} />
         <ConfirmDeleteModal open={deleteChallengeModalOpen} onClose={() => setDeleteChallengeModalOpen(false)} onConfirm={handleDeleteChallenge} />
+        <AddAttachmentsModal open={addAttachmentsModalOpen} onClose={() => setAddAttachmentsModalOpen(false)} />
     </div>
 }

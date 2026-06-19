@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { sendCommand } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { Commands } from '../utils/commands'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { headingsPlugin, linkPlugin, listsPlugin, MDXEditor, quotePlugin } from '@mdxeditor/editor'
 
 type Props = {
     open: boolean
@@ -12,14 +15,11 @@ type AttachmentData = {
     name: string
     content: string
     type: string
+    mimeType: string
 }
 
-const IMAGE_TYPES = [
-    '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'
-] as const
-
 const CODE_TYPES = [
-    '.c', '.cpp', '.py', '.js', '.java', '.txt'
+    '.c', '.cpp', '.py', '.js', '.java', '.html', '.css', '.json', '.txt', '.ts'
 ] as const
 
 export default function AttachmentRenderer({ open, attachment }: Props) {
@@ -39,30 +39,53 @@ export default function AttachmentRenderer({ open, attachment }: Props) {
         loadAttachment()
     }, [open, attachment, workspaceStore.path, workspaceStore.activeChallenge?.id])
 
+    const renderer = (file: AttachmentData) => {
+        if(CODE_TYPES.includes(file.type as any)) return <CodeRenderer file={file} />
+        if(file.mimeType.startsWith('image/')) return <ImageRenderer file={file} />
+        if(file.mimeType === 'application/pdf') return <PdfRenderer file={file} />
+        if(file.mimeType.startsWith('audio/')) return <AudioRenderer file={file} />
+        if(file.mimeType.startsWith('video/')) return <VideoRenderer file={file} />
+        if(file.type === '.md') return <MarkdownRenderer file={file} />
+    }
+
     if(!open) return null
     if(!file) return <div className="flex flex-col items-center justify-center gap-2 p-6 flex-1">
         <p className="text-gray-500">Loading attachment...</p>
     </div>
 
     return <div className="flex flex-col items-center justify-center gap-2 p-6 flex-1">
-        {IMAGE_TYPES.includes(file.type as any) && <ImageRenderer file={file} />}
-        {file.type === '.pdf' && <PdfRenderer file={file} />}
-        {CODE_TYPES.includes(file.type as any) && <CodeRenderer file={file} />}
+        {renderer(file) || <p className="text-gray-500">Unsupported file type: {file.type}</p>}
     </div>
 }
 
 function ImageRenderer({ file }: { file: AttachmentData }) {
-    return <img src={`data:image/${file.type.slice(1)};base64,${file.content}`} alt={file.name} className="max-w-full max-h-[80vh]" />
+    return <img src={`data:${file.mimeType};base64,${file.content}`} alt={file.name} className="max-w-full max-h-[80vh]" />
 }
 
 function PdfRenderer({ file }: { file: AttachmentData }) {
-    return <iframe src={`data:application/pdf;base64,${file.content}`} title={file.name} className="w-full h-[80vh]" />
+    return <iframe src={`data:${file.mimeType};base64,${file.content}`} title={file.name} className="w-full h-[80vh]" />
 }
 
 function CodeRenderer({ file }: { file: AttachmentData }) {
-    return <pre className="w-full min-h-[80vh] text-wrap bg-bg-light p-4 rounded-lg">
-        <code>
-            {file.content}
-        </code>
-    </pre>
+    return <SyntaxHighlighter language={file.type.slice(1)} style={oneDark} showLineNumbers customStyle={{ width: '100%', minHeight: '80vh', overflowY: 'auto' }}>
+        {file.content}
+    </SyntaxHighlighter>
+}
+
+function AudioRenderer({ file }: { file: AttachmentData }) {
+    return <audio controls className="w-full" src={`data:${file.mimeType};base64,${file.content}`} />
+}
+
+function VideoRenderer({ file }: { file: AttachmentData }) {
+    return <video controls className="w-full" src={`data:${file.mimeType};base64,${file.content}`} />
+}
+
+function MarkdownRenderer({ file }: { file: AttachmentData }) {
+    return <MDXEditor
+        markdown={file.content}
+        className="w-full min-h-[80vh] border border-border rounded-xl bg-bg-light"
+        contentEditableClassName="text-text! p-4!"
+        plugins={[headingsPlugin(), listsPlugin(), quotePlugin(), linkPlugin()]}
+        readOnly
+    />
 }
