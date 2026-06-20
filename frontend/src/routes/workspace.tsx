@@ -38,6 +38,7 @@ export default function Workspace() {
 
     const [draggedId, setDraggedId] = useState<string | null>(null)
     const [dragOverId, setDragOverId] = useState<string | null>(null)
+    const [expandedChallengeId, setExpandedChallengeId] = useState<string | null>(null)
 
     const handleDragStart = (id: string) => {
         setDraggedId(id)
@@ -184,6 +185,16 @@ export default function Workspace() {
         workspaceStore.loadChallenges()
     }
 
+    const handleToggleExpand = (challengeId: string) => {
+        setExpandedChallengeId(prev => prev === challengeId ? null : challengeId)
+    }
+
+    const handleSelectChallenge = (challenge: typeof challenges[0]) => {
+        setView('challenge')
+        workspaceStore.setActiveChallenge(challenge)
+        setExpandedChallengeId(challenge.id)
+    }
+
     const allExistingTags = activeChallenge
         ? Array.from(new Set(challenges.flatMap(c => c.tags))).filter(tag => !activeChallenge.tags.includes(tag)
     ) : []
@@ -206,7 +217,7 @@ export default function Workspace() {
     }
 
     return <div className="min-h-[calc(100vh-3rem)] flex">
-        <aside className="flex flex-col gap-2 w-[20vw] p-6 bg-bg-light border-r border-border">
+        <aside className="flex flex-col gap-2 w-[20vw] p-6 bg-bg-light border-r border-border overflow-y-auto">
             <h1 className="font-semibold uppercase tracking-wider">Workspace</h1>
             <span className="text-sm line-clamp-1 text-muted">{workspaceStore.name}</span>
             {workspaceStore.path && <span className="text-xs text-muted line-clamp-1 break-all">{workspaceStore.path.replaceAll('\\', '/')}</span>}
@@ -271,39 +282,82 @@ export default function Workspace() {
                 <button onClick={() => workspaceStore.clearFilters()} className="hover:text-text cursor-pointer transition">clear</button>
             </div>}
 
-            {filteredChallenges.length === 0
-                ? <span className="text-sm text-muted">
-                    {challenges.length === 0 ? 'No challenges found.' : 'No challenges match your filters.'}
-                  </span>
-                : filteredChallenges.map(challenge => {
-                    const isActive = activeChallenge?.id === challenge.id
-                    const isCompleted = /^.+\{.+\}$/.test(challenge.flag.trim())
-                    const attachments = challenge.attachments ?? []
-                    return <div key={challenge.id} draggable onDragStart={() => handleDragStart(challenge.id)} onDragOver={(e) => handleDragOver(e, challenge.id)} onDrop={handleDrop} onDragEnd={handleDragEnd} className={`group flex flex-col items-start rounded-xl transition-all duration-150 ${draggedId === challenge.id ? 'opacity-40 scale-[0.97]' : '' } ${ dragOverId === challenge.id && draggedId !== challenge.id ? 'ring-1 ring-primary/60' : ''}`}>
-                        <div className="flex flex-row gap-1 w-full">
-                            <span className="shrink-0 cursor-grab active:cursor-grabbing text-muted px-1 opacity-0 group-hover:opacity-40 hover:opacity-90! transition-opacity select-none mt-2.5" title="Drag to reorder">
-                                <FontAwesomeIcon icon={faGripVertical} className="text-xs" />
-                            </span>
-                            <button onClick={() => {
-                                setView('challenge')
-                                workspaceStore.setActiveChallenge(challenge)
-                            }} className={`text-left flex-1 min-w-0 p-2 rounded-xl cursor-pointer transition ${getChallengeButtonClass(challenge.id, challenge.flag)}`}>
-                                <div className="line-clamp-1 font-medium">{challenge.title}</div>
-                                {isActive && <>
-                                    {challenge.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-1.5"> 
-                                        {challenge.tags.slice(0,2).map(tag => <span key={tag} className={`text-[10px] px-1.5 rounded-full ${isCompleted ? 'bg-text/10 text-text/90' : 'bg-text/30 text-text/80'}`}>{tag}</span>)}
-                                        {challenge.tags.length > 2 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-text/10 text-text/90">+{challenge.tags.length - 2}</span>}
-                                    </div>}
-                                </>}
-                            </button>
+            <div className="px-1 pb-4">
+                {filteredChallenges.length === 0
+                    ? <span className="text-sm text-muted px-3">
+                        {challenges.length === 0 ? 'No challenges found.' : 'No challenges match your filters.'}
+                      </span>
+                    : filteredChallenges.map(challenge => {
+                        const isActive = activeChallenge?.id === challenge.id
+                        const isCompleted = /^.+\{.+\}$/.test(challenge.flag.trim())
+                        const attachments = challenge.attachments ?? []
+                        const isExpanded = expandedChallengeId === challenge.id
+                        return <div key={challenge.id} draggable onDragStart={() => handleDragStart(challenge.id)} onDragOver={(e) => handleDragOver(e, challenge.id)} onDrop={handleDrop} onDragEnd={handleDragEnd} className={`mb-px transition-all duration-150 ${draggedId === challenge.id ? 'opacity-40 scale-[0.97]' : '' } ${ dragOverId === challenge.id && draggedId !== challenge.id ? 'ring-1 ring-primary/60 rounded-lg' : ''}`}>
+                            <div className={`flex items-start gap-1 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all duration-150 ${getChallengeButtonClass(challenge.id, challenge.flag)}`}>
+                                <div className="flex items-center gap-1 pt-0.5">
+                                    <span
+                                        className="shrink-0 cursor-grab active:cursor-grabbing text-muted opacity-40 hover:opacity-90 transition-opacity select-none"
+                                        title="Drag to reorder"
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    >
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
+                                        </svg>
+                                    </span>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleToggleExpand(challenge.id)
+                                        }}
+                                        className={`shrink-0 p-0.5 rounded transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''} ${isActive ? 'text-text/60' : 'text-muted'}`}
+                                    >
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="9 18 15 12 9 6"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 min-w-0 pt-px" onClick={() => handleSelectChallenge(challenge)}>
+                                    <div className="line-clamp-1 font-medium">{challenge.title}</div>
+                                    {isActive && challenge.tags.length > 0 && (
+                                        <div className="mt-1.5">
+                                            <div className="flex flex-wrap gap-1">
+                                                {challenge.tags.slice(0, 2).map(tag => (
+                                                    <span key={tag} className={`text-[10px] px-1.5 rounded-full ${isCompleted ? 'bg-text/10 text-text/90' : 'bg-text/30 text-text/80'}`}>{tag}</span>
+                                                ))}
+                                                {challenge.tags.length > 2 && 
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-text/10 text-text/90">+{challenge.tags.length - 2}</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                <div className="pl-[38px] pr-2">
+                                    {attachments.map(att => <button
+                                        key={att}
+                                        onClick={() => {
+                                            setView('attachment')
+                                            setAttachmentToView(att)
+                                        }}
+                                        className="flex items-center gap-2 w-full px-2.5 py-1 rounded cursor-pointer transition hover:bg-border/30 text-left"
+                                    >
+                                        <span className="text-muted opacity-40">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <polyline points="14 2 14 8 20 8"/>
+                                            </svg>
+                                        </span>
+                                        <span className="text-xs text-muted truncate font-mono">{att}</span>
+                                    </button>)}
+                                </div>
+                            </div>
                         </div>
-                        {isActive && attachments.map(att => <button key={att} onClick={() => {
-                            setView('attachment')
-                            setAttachmentToView(att)
-                        }} className="cursor-pointer">{att}</button>)}
-                    </div>
-                })
-            }
+                    })
+                }
+            </div>
         </aside>
 
         {!activeChallenge
