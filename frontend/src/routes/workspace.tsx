@@ -1,4 +1,4 @@
-import { faDownload, faFile, faFileCirclePlus, faFilter, faInfoCircle, faPen, faPlus, faTag, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faFile, faFileCirclePlus, faFilter, faInfoCircle, faMagnifyingGlass, faPen, faPlus, faSpinner, faTag, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { BlockTypeSelect, BoldItalicUnderlineToggles, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
@@ -43,6 +43,7 @@ export default function Workspace() {
     const [tools, setTools] = useState<Tool[]>([])
     const [toolResults, setToolResults] = useState<Record<string, any>>({})
     const [loadingTools, setLoadingTools] = useState(false)
+    const [analyzed, setAnalyzed] = useState(false)
 
     const [createChallengeModalOpen, setCreateChallengeModalOpen] = useState(false)
     const [deleteChallengeModalOpen, setDeleteChallengeModalOpen] = useState(false)
@@ -312,6 +313,7 @@ export default function Workspace() {
         const tools = await sendCommand<Tool[]>(Commands.GetTools, { path: workspaceStore.path, challengeId: workspaceStore.activeChallenge?.id, attachmentName: file.name })
         setTools(tools)
         setLoadingTools(false)
+        setAnalyzed(true)
     }
 
     return <div className="min-h-[calc(100vh-3rem)] flex">
@@ -537,15 +539,27 @@ export default function Workspace() {
                 </main>
                 {attachmentInfoAsideOpen && <aside className="absolute top-0 right-0 h-full z-50 flex flex-col gap-4 w-[20vw] p-6 bg-bg-light border-l border-border overflow-y-auto">
                     <div className="flex flex-row justify-between items-center">
-                        <h1 className="font-semibold uppercase tracking-wider">Attachment Info</h1>
+                        <h1 className="font-semibold uppercase tracking-wider flex items-center gap-2">
+                            <FontAwesomeIcon icon={faInfoCircle} className="text-muted text-sm" />
+                            Attachment Info
+                        </h1>
                         <button onClick={() => setAttachmentInfoAsideOpen(false)} className="text-muted cursor-pointer hover:text-text transition"><FontAwesomeIcon icon={faXmark} /></button>
                     </div>
-                    <button onClick={handleAnalyzeAttachment} disabled={loadingTools} className="bg-primary w-full px-3 py-2 rounded-xl cursor-pointer hover:bg-primary/90 transition disabled:cursor-not-allowed disabled:bg-primary/50 disabled:hover:bg-primary/50">
+                    <span className="text-xs text-muted font-mono truncate -mt-2">{file?.name}</span>
+
+                    <button onClick={handleAnalyzeAttachment} disabled={loadingTools} className="flex items-center justify-center gap-2 bg-primary w-full px-3 py-2 rounded-xl cursor-pointer hover:bg-primary/90 transition disabled:cursor-not-allowed disabled:bg-primary/50 disabled:hover:bg-primary/50">
+                        <FontAwesomeIcon icon={loadingTools ? faSpinner : faMagnifyingGlass} className={loadingTools ? 'animate-spin' : ''} />
                         {loadingTools ? 'Analyzing...' : 'Analyze Attachment'}
                     </button>
+
+                    {!loadingTools && tools.length === 0 && analyzed && <p className="text-sm text-muted text-center px-2">No tools available for this file type.</p>}
+
                     {tools.length !== 0 && <div className="flex flex-col gap-3">
                         <hr className="border-border" />
-                        <h2 className="uppercase tracking-wider text-muted text-sm">Available Tools</h2>
+                        <h2 className="uppercase tracking-wider text-muted text-sm flex items-center gap-2">
+                            Available Tools
+                            <span className="text-[10px] px-1.5 rounded-full bg-border/60 text-muted font-normal tracking-normal">{tools.length}</span>
+                        </h2>
                         {tools.map(tool => <ToolAccordion
                             key={tool.name}
                             tool={tool}
