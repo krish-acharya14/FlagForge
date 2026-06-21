@@ -1,8 +1,9 @@
-import { faDownload, faFileCirclePlus, faFilter, faInfoCircle, faPen, faPlus, faTag, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faFile, faFileCirclePlus, faFilter, faInfoCircle, faPen, faPlus, faTag, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { BlockTypeSelect, BoldItalicUnderlineToggles, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import AddAttachmentsModal from '../components/AddAttachmentsModal'
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
@@ -45,11 +46,12 @@ export default function Workspace() {
     const [tagInput, setTagInput] = useState('')
     const tagDropdownRef = useRef<HTMLDivElement>(null)
     const tagInputRef = useRef<HTMLInputElement>(null)
-    const filterDropdownRef = useRef<HTMLDivElement>(null)
+    const filterButtonRef = useRef<HTMLButtonElement>(null)
+    const filterPanelRef = useRef<HTMLDivElement>(null)
+    const [filterPanelPos, setFilterPanelPos] = useState({ top: 0, left: 0 })
 
     const [draggedId, setDraggedId] = useState<string | null>(null)
     const [dragOverId, setDragOverId] = useState<string | null>(null)
-    const [expandedChallengeId, setExpandedChallengeId] = useState<string | null>(null)
 
     const handleDragStart = (id: string) => {
         setDraggedId(id)
@@ -152,11 +154,19 @@ export default function Workspace() {
         return () => document.removeEventListener('mousedown', handleClickOutside as any)
     }, [tagDropdownOpen])
 
+    useLayoutEffect(() => {
+        if(filterOpen && filterButtonRef.current) {
+            const rect = filterButtonRef.current.getBoundingClientRect()
+            setFilterPanelPos({ top: rect.bottom + 8, left: Math.max(8, rect.right - 224) })
+        }
+    }, [filterOpen])
+
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if(filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
-                setFilterOpen(false)
-            }
+            const target = e.target as Node
+            const clickedButton = filterButtonRef.current?.contains(target)
+            const clickedPanel = filterPanelRef.current?.contains(target)
+            if(!clickedButton && !clickedPanel) setFilterOpen(false)
         }
         if(filterOpen) document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -209,14 +219,9 @@ export default function Workspace() {
         workspaceStore.loadChallenges()
     }
 
-    const handleToggleExpand = (challengeId: string) => {
-        setExpandedChallengeId(prev => prev === challengeId ? null : challengeId)
-    }
-
     const handleSelectChallenge = (challenge: typeof challenges[0]) => {
         setView('challenge')
         workspaceStore.setActiveChallenge(challenge)
-        setExpandedChallengeId(challenge.id)
     }
 
     const allExistingTags = activeChallenge
@@ -304,56 +309,62 @@ export default function Workspace() {
             <div className="flex flex-row justify-between items-center">
                 <h1 className="font-semibold uppercase tracking-wider">Challenges</h1>
                 <div className="flex items-center gap-1">
-                    <div className="relative" ref={filterDropdownRef}>
-                        <button
-                            onClick={() => setFilterOpen(prev => !prev)}
-                            className={`relative cursor-pointer text-muted hover:text-text transition px-1 ${activeFiltersCount > 0 ? 'text-primary!' : ''}`}
-                            title="Filter challenges"
-                        >
-                            <FontAwesomeIcon icon={faFilter} className="text-xs" />
-                            {activeFiltersCount > 0 &&
-                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 text-[9px] flex items-center justify-center bg-primary rounded-full text-text font-bold">
-                                    {activeFiltersCount}
-                                </span>
-                            }
-                        </button>
-
-                        {filterOpen && <div className="absolute left-0 top-full mt-2 z-50 bg-bg-light border border-border rounded-xl shadow-xl w-56 overflow-hidden">
-                            <div className="p-3 border-b border-border">
-                                <p className="text-xs text-muted uppercase tracking-wider font-semibold mb-2">Status</p>
-                                <div className="flex gap-1">
-                                    {(['all', 'solved', 'unsolved'] as const).map(s => <button
-                                        key={s}
-                                        onClick={() => workspaceStore.setFilterStatus(s)}
-                                        className={`flex-1 text-xs px-2 py-1 rounded-lg cursor-pointer transition capitalize ${filterStatus === s ? 'bg-primary text-text' : 'bg-border/40 hover:bg-border text-muted hover:text-text'}`}
-                                    >{s}</button>)}
-                                </div>
-                            </div>
-
-                            {allTagsInWorkspace.length > 0 && <div className="p-3">
-                                <p className="text-xs text-muted uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
-                                    <FontAwesomeIcon icon={faTag} className="text-[10px]" />
-                                    Filter by Tag
-                                </p>
-                                <div className="flex flex-wrap gap-1 max-h-36 overflow-y-auto">
-                                    {allTagsInWorkspace.map(tag => <button
-                                        key={tag}
-                                        onClick={() => workspaceStore.toggleFilterTag(tag)}
-                                        className={`text-xs px-2 py-0.5 rounded-full cursor-pointer transition ${filterTags.includes(tag) ? 'bg-primary text-text' : 'bg-border/40 hover:bg-border text-muted hover:text-text'}`}
-                                    >{tag}</button>)}
-                                </div>
-                            </div>}
-
-                            {activeFiltersCount > 0 && <div className="px-3 pb-3">
-                                <button onClick={() => { workspaceStore.clearFilters(); setFilterOpen(false) }} className="w-full text-xs py-1.5 rounded-lg bg-border/40 hover:bg-border text-muted hover:text-text cursor-pointer transition">
-                                    Clear all filters
-                                </button>
-                            </div>}
-                        </div>}
-                    </div>
+                    <button
+                        ref={filterButtonRef}
+                        onClick={() => setFilterOpen(prev => !prev)}
+                        className={`relative cursor-pointer text-muted hover:text-text transition px-1 ${activeFiltersCount > 0 ? 'text-primary!' : ''}`}
+                        title="Filter challenges"
+                    >
+                        <FontAwesomeIcon icon={faFilter} className="text-xs" />
+                        {activeFiltersCount > 0 &&
+                            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 text-[9px] flex items-center justify-center bg-primary rounded-full text-text font-bold">
+                                {activeFiltersCount}
+                            </span>
+                        }
+                    </button>
                     <button onClick={() => setCreateChallengeModalOpen(true)} className="cursor-pointer text-muted hover:text-text transition"><FontAwesomeIcon icon={faPlus} /></button>
                 </div>
             </div>
+
+            {filterOpen && createPortal(
+                <div
+                    ref={filterPanelRef}
+                    style={{ top: filterPanelPos.top, left: filterPanelPos.left }}
+                    className="fixed z-50 bg-bg-light border border-border rounded-xl shadow-2xl w-56 overflow-hidden"
+                >
+                    <div className="p-3 border-b border-border">
+                        <p className="text-xs text-muted uppercase tracking-wider font-semibold mb-2">Status</p>
+                        <div className="flex gap-1">
+                            {(['all', 'solved', 'unsolved'] as const).map(s => <button
+                                key={s}
+                                onClick={() => workspaceStore.setFilterStatus(s)}
+                                className={`flex-1 text-xs px-2 py-1 rounded-lg cursor-pointer transition capitalize ${filterStatus === s ? 'bg-primary text-text' : 'bg-border/40 hover:bg-border text-muted hover:text-text'}`}
+                            >{s}</button>)}
+                        </div>
+                    </div>
+
+                    {allTagsInWorkspace.length > 0 && <div className="p-3">
+                        <p className="text-xs text-muted uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
+                            <FontAwesomeIcon icon={faTag} className="text-[10px]" />
+                            Filter by Tag
+                        </p>
+                        <div className="flex flex-wrap gap-1 max-h-36 overflow-y-auto">
+                            {allTagsInWorkspace.map(tag => <button
+                                key={tag}
+                                onClick={() => workspaceStore.toggleFilterTag(tag)}
+                                className={`text-xs px-2 py-0.5 rounded-full cursor-pointer transition ${filterTags.includes(tag) ? 'bg-primary text-text' : 'bg-border/40 hover:bg-border text-muted hover:text-text'}`}
+                            >{tag}</button>)}
+                        </div>
+                    </div>}
+
+                    {activeFiltersCount > 0 && <div className="px-3 pb-3">
+                        <button onClick={() => { workspaceStore.clearFilters(); setFilterOpen(false) }} className="w-full text-xs py-1.5 rounded-lg bg-border/40 hover:bg-border text-muted hover:text-text cursor-pointer transition">
+                            Clear all filters
+                        </button>
+                    </div>}
+                </div>,
+                document.body
+            )}
 
             {activeFiltersCount > 0 && <div className="flex items-center justify-between text-xs text-muted">
                 <span>{filteredChallenges.length} of {challenges.length} shown</span>
@@ -369,60 +380,39 @@ export default function Workspace() {
                         const isActive = activeChallenge?.id === challenge.id
                         const isCompleted = /^.+\{.+\}$/.test(challenge.flag.trim())
                         const attachments = challenge.attachments ?? []
-                        const isExpanded = expandedChallengeId === challenge.id
-                        return <div key={challenge.id} draggable onDragStart={() => handleDragStart(challenge.id)} onDragOver={(e) => handleDragOver(e, challenge.id)} onDrop={handleDrop} onDragEnd={handleDragEnd} className={`mb-px transition-all duration-150 ${draggedId === challenge.id ? 'opacity-40 scale-[0.97]' : '' } ${ dragOverId === challenge.id && draggedId !== challenge.id ? 'ring-1 ring-primary/60 rounded-lg' : ''}`}>
-                            <div className={`flex items-start gap-1 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all duration-150 ${getChallengeButtonClass(challenge.id, challenge.flag)}`}>
-                                <div className="flex items-center gap-1 pt-0.5">
-                                    <span
-                                        className="shrink-0 cursor-grab active:cursor-grabbing text-muted opacity-40 hover:opacity-90 transition-opacity select-none"
-                                        title="Drag to reorder"
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                    >
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
-                                        </svg>
-                                    </span>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleToggleExpand(challenge.id)
-                                        }}
-                                        className={`shrink-0 p-0.5 rounded transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''} ${isActive ? 'text-text/60' : 'text-muted'}`}
-                                    >
-                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="9 18 15 12 9 6"/>
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                <div className="flex-1 min-w-0 pt-px" onClick={() => handleSelectChallenge(challenge)}>
-                                    <div className="line-clamp-1 font-medium">{challenge.title}</div>
-                                    {isActive && challenge.tags.length > 0 && <div className="mt-1.5">
-                                        <div className="flex flex-wrap gap-1">
-                                            {challenge.tags.slice(0, 2).map(tag => <span key={tag} className={`text-[10px] px-1.5 rounded-full ${isCompleted ? 'bg-text/10 text-text/90' : 'bg-text/30 text-text/80'}`}>{tag}</span>)}
-                                            {challenge.tags.length > 2 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-text/10 text-text/90">+{challenge.tags.length - 2}</span>}
-                                        </div>
-                                    </div>}
-                                </div>
+                        return <div
+                            key={challenge.id}
+                            draggable
+                            onDragStart={() => handleDragStart(challenge.id)}
+                            onDragOver={(e) => handleDragOver(e, challenge.id)}
+                            onDrop={handleDrop}
+                            onDragEnd={handleDragEnd}
+                            title="Drag to reorder"
+                            className={`mb-1 rounded-xl transition-all duration-150 ${draggedId === challenge.id ? 'opacity-40 scale-[0.97]' : ''} ${dragOverId === challenge.id && draggedId !== challenge.id ? 'ring-1 ring-primary/60' : ''}`}
+                        >
+                            <div
+                                onClick={() => handleSelectChallenge(challenge)}
+                                className={`flex flex-col gap-1.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-150 ${getChallengeButtonClass(challenge.id, challenge.flag)}`}
+                            >
+                                <span className="line-clamp-1 font-medium">{challenge.title}</span>
+                                {isActive && challenge.tags.length > 0 && <span className="flex flex-wrap gap-1">
+                                    {challenge.tags.slice(0, 2).map(tag => <span key={tag} className={`text-[10px] px-1.5 rounded-full ${isCompleted ? 'bg-text/10 text-text/90' : 'bg-text/30 text-text/80'}`}>{tag}</span>)}
+                                    {challenge.tags.length > 2 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-text/10 text-text/90">+{challenge.tags.length - 2}</span>}
+                                </span>}
                             </div>
 
-                            <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? 'max-h-50 opacity-100' : 'max-h-0 opacity-0'}`}>
-                                <div className="pl-9.5 pr-2">
+                            <div className={`overflow-hidden transition-all duration-200 ${isActive && attachments.length > 0 ? 'max-h-50 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                                <div className="flex flex-col gap-0.5 pl-2 pr-1">
                                     {attachments.map(att => <button
                                         key={att}
                                         onClick={() => {
                                             setView('attachment')
                                             setAttachmentToView(att)
                                         }}
-                                        className="flex items-center gap-2 w-full px-2.5 py-1 rounded cursor-pointer transition hover:bg-border/30 text-left"
+                                        className="flex items-center gap-2 w-full px-2.5 py-1 rounded-lg cursor-pointer transition hover:bg-border/30 text-left"
                                     >
-                                        <span className="text-muted opacity-40">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                                <polyline points="14 2 14 8 20 8"/>
-                                            </svg>
-                                        </span>
-                                        <span className="text-xs text-muted truncate font-mono">{att}</span>
+                                        <FontAwesomeIcon icon={faFile} className="text-[10px] text-muted opacity-50 shrink-0" />
+                                        <span className="text-xs text-muted truncate font-mono min-w-0 flex-1">{att}</span>
                                     </button>)}
                                 </div>
                             </div>
