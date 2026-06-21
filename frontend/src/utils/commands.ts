@@ -14,5 +14,7 @@ export const Commands = {
     UpdateDiscordRPC: 'updateDiscordRPC',
     GetAttachment: 'getAttachment',
     SaveAttachment: 'saveAttachment',
-    DeleteAttachment: 'deleteAttachment'
+    DeleteAttachment: 'deleteAttachment',
+    GetTools: 'getTools',
+    ExecuteTool: 'executeTool'
 } as const

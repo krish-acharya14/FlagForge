@@ -19,3 +19,14 @@ export type Challenge = {
     createdAt: Date
     updatedAt: Date
 }
+
+export type Tool = {
+    name: string
+    description: string
+}
+
+export type ToolResult = {
+    type?: string
+    content?: string
+    metadata?: Record<string, any>
+}

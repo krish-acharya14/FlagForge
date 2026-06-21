@@ -8,7 +8,7 @@ type AttachmentData = {
     mimeType: string
 }
 
-const CODE_TYPES = [
+export const CODE_TYPES = [
     '.c', '.cpp', '.py', '.js', '.java', '.html', '.css', '.json', '.txt', '.ts'
 ] as const
 

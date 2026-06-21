@@ -36,7 +36,7 @@ export default function CreateWorkspaceModal({ open, onClose }: Props) {
             handleCancel()
             navigate('/workspace')
         } catch(err) {
-            console.log('Error creating workspace:', err)
+            console.error('Error creating workspace:', err)
             toast.error(err instanceof Error ? err.message : 'Failed to create workspace')
         }
     }

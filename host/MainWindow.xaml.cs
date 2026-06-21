@@ -1,5 +1,6 @@
 ﻿using FlagForgeHost.Models;
 using FlagForgeHost.Services;
+using FlagForgeHost.Tools;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Win32;
@@ -70,6 +71,10 @@ public partial class MainWindow : Window
             case "getAttachment": GetAttachment(root); break;
             case "saveAttachment": SaveAttachment(root); break;
             case "deleteAttachment": DeleteAttachment(root); break;
+
+            case "getTools": GetTools(root); break;
+            case "executeTool": await ExecuteTool(root); break;
+            // case "executeTools": await ExecuteTools(root); break;
 
             case "minimizeWindow": WindowState = WindowState.Minimized; break;
             case "closeWindow": Close(); break;
@@ -761,7 +766,16 @@ public partial class MainWindow : Window
         var challengePath = Path.GetDirectoryName(challengeFilePath)!;
         var attachmentPath = Path.Combine(challengePath, name);
 
-        File.WriteAllText(attachmentPath, content);
+        var nonBase64Formats = new[]
+        {
+            ".c", ".cpp", ".py", ".js", ".java", ".html", ".css", ".json", ".txt", ".ts", ".md"
+        };
+        if (!nonBase64Formats.Contains(Path.GetExtension(name).ToLowerInvariant()))
+        {
+            var bytes = Convert.FromBase64String(content);
+            File.WriteAllBytes(attachmentPath, bytes);
+        }
+        else File.WriteAllText(attachmentPath, content);
 
         SendMessage(new { type = "saveAttachmentResult" });
     }
@@ -805,4 +819,128 @@ public partial class MainWindow : Window
 
         SendChallengeResult("deleteAttachmentResult", challenge);
     }
+
+    private void GetTools(JsonElement root)
+    {
+        var payload = root.GetProperty("payload");
+        var path = payload.GetProperty("path").GetString()!;
+        var challengeId = payload.GetProperty("challengeId").GetGuid();
+        var attachmentName = payload.GetProperty("attachmentName").GetString()!;
+        
+        var challengeFilePath = FindChallengeFile(path, challengeId);
+        if (challengeFilePath == null)
+        {
+            SendMessage(new
+            {
+                type = "getToolsFailed",
+                error = "Challenge not found."
+            });
+            return;
+        }
+
+        var challenge = ReadChallengeFile(challengeFilePath);
+        if (challenge == null || !challenge.Attachments.Contains(attachmentName))
+        {
+            SendMessage(new
+            {
+                type = "getToolsFailed",
+                error = "Attachment not found."
+            });
+            return;
+        }
+
+        var attachmentPath = Path.Combine(Path.GetDirectoryName(challengeFilePath)!, attachmentName);
+
+        var tools = ToolRegistry.GetAvailableTools(attachmentPath).Select(t => new
+        {
+            name = t.Name,
+            description = t.Description
+        }).ToArray();
+        SendMessage(new
+        {
+            type = "getToolsResult",
+            data = tools
+        });
+    }
+
+    private async Task ExecuteTool(JsonElement root)
+    {
+        try
+        {
+            var payload = root.GetProperty("payload");
+            var workspacePath = payload.GetProperty("path").GetString()!;
+            var challengeId = payload.GetProperty("challengeId").GetGuid();
+            var attachmentName = payload.GetProperty("attachmentName").GetString()!;
+            var toolName = payload.GetProperty("toolName").GetString()!;
+            
+            var challengeFilePath = FindChallengeFile(workspacePath, challengeId);
+            if (challengeFilePath == null)
+            {
+                SendMessage(new
+                {
+                    type = "executeToolFailed",
+                    error = "Challenge not found."
+                });
+                return;
+            }
+
+            var challenge = ReadChallengeFile(challengeFilePath);
+            if (challenge == null || !challenge.Attachments.Contains(attachmentName))
+            {
+                SendMessage(new
+                {
+                    type = "executeToolFailed",
+                    error = "Attachment not found."
+                });
+                return;
+            }
+
+            var attachmentPath = Path.Combine(Path.GetDirectoryName(challengeFilePath)!, attachmentName);
+            var results = await ToolService.ExecuteToolAsync(toolName, attachmentPath);
+            SendMessage(new
+            {
+                type = "executeToolResult",
+                data = results.Select(r => new
+                {
+                    type = r.Type,
+                    content = r.Content
+                }).ToArray()
+            });
+        }
+        catch (Exception ex)
+        {
+            SendMessage(new
+            {
+                type = "executeToolFailed",
+                error = $"Failed to execute tool: {ex.Message}"
+            });
+        }
+    }
+
+    // private async Task ExecuteTools(JsonElement root)
+    // {
+    //     try
+    //     {
+    //         var payload = root.GetProperty("payload");
+    //         var path = payload.GetProperty("path").GetString()!;
+    //         var results = await ToolService.ExecuteAllToolsAsync(path);
+    //         SendMessage(new
+    //         {
+    //             type = "executeToolsResult",
+    //             data = results.Select(r => new
+    //             {
+    //                 type = r.Type,
+    //                 content = r.Content
+    //             }).ToArray()
+    //         });
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         SendMessage(new
+    //         {
+    //             type = "executeToolsFailed",
+    //             error = $"Failed to execute tools: {ex.Message}"
+    //         });
+    //     }
+    // }
 }

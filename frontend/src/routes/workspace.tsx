@@ -4,15 +4,17 @@ import { BlockTypeSelect, BoldItalicUnderlineToggles, headingsPlugin, linkPlugin
 import '@mdxeditor/editor/style.css'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import AddAttachmentsModal from '../components/AddAttachmentsModal'
+import { CODE_TYPES, renderer } from '../components/AttachmentRenderer'
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal'
 import CreateChallengeModal from '../components/CreateChallengeModal'
+import ToolAccordion from '../components/ToolAccordion'
 import { sendCommand } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { Commands } from '../utils/commands'
-import toast from 'react-hot-toast'
-import { renderer } from '../components/AttachmentRenderer'
+import type { Tool } from '../utils/types'
 
 const CTF_DEFAULT_TAGS = [
     'pwn', 'forensics', 'cryptography', 'web', 'reversing',
@@ -36,6 +38,11 @@ export default function Workspace() {
     const [file, setFile] = useState<AttachmentData | null>(null)
     const [attachmentEditable, setAttachmentEditable] = useState(false)
     const [deleteAttachmentModalOpen, setDeleteAttachmentModalOpen] = useState(false)
+    const [attachmentInfoAsideOpen, setAttachmentInfoAsideOpen] = useState(false)
+
+    const [tools, setTools] = useState<Tool[]>([])
+    const [toolResults, setToolResults] = useState<Record<string, any>>({})
+    const [loadingTools, setLoadingTools] = useState(false)
 
     const [createChallengeModalOpen, setCreateChallengeModalOpen] = useState(false)
     const [deleteChallengeModalOpen, setDeleteChallengeModalOpen] = useState(false)
@@ -299,8 +306,16 @@ export default function Workspace() {
         setView('challenge')
     }
 
+    const handleAnalyzeAttachment = async() => {
+        if(!file) return
+        setLoadingTools(true)
+        const tools = await sendCommand<Tool[]>(Commands.GetTools, { path: workspaceStore.path, challengeId: workspaceStore.activeChallenge?.id, attachmentName: file.name })
+        setTools(tools)
+        setLoadingTools(false)
+    }
+
     return <div className="min-h-[calc(100vh-3rem)] flex">
-        <aside className="flex flex-col gap-2 w-[20vw] p-6 bg-bg-light border-r border-border overflow-y-auto">
+        <aside className="flex flex-col gap-2 shrink-0 w-[20vw] p-6 bg-bg-light border-r border-border overflow-y-auto">
             <h1 className="font-semibold uppercase tracking-wider">Workspace</h1>
             <span className="text-sm line-clamp-1 text-muted">{workspaceStore.name}</span>
             {workspaceStore.path && <span className="text-xs text-muted line-clamp-1 break-all">{workspaceStore.path.replaceAll('\\', '/')}</span>}
@@ -506,19 +521,47 @@ export default function Workspace() {
                     placeholder="flag{...}"
                 />
             </main>
-            : <main className="flex flex-col gap-2 p-6 flex-1">
-                <div className="flex flex-row justify-between items-center">
-                    <h1 className="text-4xl line-clamp-1 leading-tight">{file?.name}</h1>
-                    <div className="flex flex-row gap-2 items-center">
-                        <button onClick={() => setAttachmentEditable(!attachmentEditable)} className={`bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light ${attachmentEditable ? 'text-primary' : 'hover:text-primary'} transition`}><FontAwesomeIcon icon={faPen} /></button>
-                        <button className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faInfoCircle} /></button>
-                        <button onClick={() => setDeleteAttachmentModalOpen(true)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faTrash} /></button>
+            : <div className="relative flex flex-row flex-1">
+                <main className="flex flex-col gap-2 p-6 flex-1">
+                    <div className="flex flex-row justify-between items-center">
+                        <h1 className="text-4xl line-clamp-1 leading-tight">{file?.name}</h1>
+                        <div className="flex flex-row gap-2 items-center">
+                            {CODE_TYPES.includes(file?.type as any) && <button onClick={() => setAttachmentEditable(!attachmentEditable)} className={`bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light ${attachmentEditable ? 'text-primary' : 'hover:text-primary'} transition`}><FontAwesomeIcon icon={faPen} /></button>}
+                            <button onClick={() => setAttachmentInfoAsideOpen(!attachmentInfoAsideOpen)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faInfoCircle} /></button>
+                            <button onClick={() => setDeleteAttachmentModalOpen(true)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faTrash} /></button>
+                        </div>
                     </div>
-                </div>
-                <hr className="my-2 border-border" />
-                {renderer(view === 'attachment', file, attachmentEditable, setFile) || <p className="text-muted self-center">Unsupported file type: {file?.type}</p>}
-                <ConfirmDeleteModal open={deleteAttachmentModalOpen} title="Are you sure you want to delete this attachment? This action cannot be undone." onClose={() => setDeleteAttachmentModalOpen(false)} onConfirm={handleDeleteAttachment} />
-            </main>}
+                    <hr className="my-2 border-border" />
+                    {renderer(view === 'attachment', file, attachmentEditable, setFile) || <p className="text-muted self-center">Unsupported file type: {file?.type}</p>}
+                    <ConfirmDeleteModal open={deleteAttachmentModalOpen} title="Are you sure you want to delete this attachment? This action cannot be undone." onClose={() => setDeleteAttachmentModalOpen(false)} onConfirm={handleDeleteAttachment} />
+                </main>
+                {attachmentInfoAsideOpen && <aside className="absolute top-0 right-0 h-full z-50 flex flex-col gap-4 w-[20vw] p-6 bg-bg-light border-l border-border overflow-y-auto">
+                    <div className="flex flex-row justify-between items-center">
+                        <h1 className="font-semibold uppercase tracking-wider">Attachment Info</h1>
+                        <button onClick={() => setAttachmentInfoAsideOpen(false)} className="text-muted cursor-pointer hover:text-text transition"><FontAwesomeIcon icon={faXmark} /></button>
+                    </div>
+                    <button onClick={handleAnalyzeAttachment} disabled={loadingTools} className="bg-primary w-full px-3 py-2 rounded-xl cursor-pointer hover:bg-primary/90 transition disabled:cursor-not-allowed disabled:bg-primary/50 disabled:hover:bg-primary/50">
+                        {loadingTools ? 'Analyzing...' : 'Analyze Attachment'}
+                    </button>
+                    {tools.length !== 0 && <div className="flex flex-col gap-3">
+                        <hr className="border-border" />
+                        <h2 className="uppercase tracking-wider text-muted text-sm">Available Tools</h2>
+                        {tools.map(tool => <ToolAccordion
+                            key={tool.name}
+                            tool={tool}
+                            results={{ [tool.name]: toolResults[tool.name] || [] }}
+                            onRun={async() => {
+                                const toolResult = await sendCommand<any[]>(Commands.ExecuteTool, { path: workspaceStore.path, challengeId: workspaceStore.activeChallenge?.id, attachmentName: file?.name, toolName: tool.name })
+                                setToolResults(prev => ({
+                                    ...prev,
+                                    [tool.name]: [...(prev[tool.name] || []), ...toolResult]
+                                }))
+                            }}
+                        />)}
+                    </div>}
+                </aside>}
+            </div>
+        }
         <CreateChallengeModal open={createChallengeModalOpen} onClose={() => setCreateChallengeModalOpen(false)} onCreate={() => workspaceStore.loadChallenges()} />
         <ConfirmDeleteModal open={deleteChallengeModalOpen} title="Are you sure you want to delete this challenge? This action cannot be undone." onClose={() => setDeleteChallengeModalOpen(false)} onConfirm={handleDeleteChallenge} />
         <AddAttachmentsModal open={addAttachmentsModalOpen} onClose={() => setAddAttachmentsModalOpen(false)} onCreate={() => workspaceStore.loadChallenges()} />

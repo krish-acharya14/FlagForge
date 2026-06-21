@@ -53,7 +53,7 @@ export default function AddAttachmentsModal({ open, onClose, onCreate }: Props) 
     }
 
     return <div className={`fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className="bg-bg-light border border-border/60 rounded-2xl shadow-2xl overflow-hidden w-128 max-w-[92vw]">
+        <div className="bg-bg-light border border-border/60 rounded-2xl shadow-2xl overflow-hidden w-lg max-w-[92vw]">
             <div className="flex items-center justify-between px-7 py-6 border-b border-border/60">
                 <div className="flex items-center gap-3">
                     <span className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-primary">

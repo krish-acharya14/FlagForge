@@ -2,14 +2,15 @@
 - ZIP (Compressed Files) Renderer
 - Fix Toast Error in AddAttachmentsModal
 - File Info in Attachment View
-
+- Not allow invalid file characters during creation of attachments
+- Add more nonBase64Types in MainWindow.xaml.cs and also in AttachmentRenderer.tsx
+- Correct type ToolResult in types.ts and ToolAccordion.tsx
 
 ## Tools
 
 ### Image tools
 
 | Tool name | Purpose |
-| file | info |
 | exiftool | metadata |
 | strings | strings |
 | xxd | hexfile |
