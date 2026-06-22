@@ -8,21 +8,6 @@
 
 ## Tools
 
-### Image tools
-
-| Tool name | Purpose |
-| exiftool | metadata |
-| strings | strings |
-| xxd | hexfile |
-| binwalk | embedded data |
-| steghide | hidden files |
-| zsteg | stego tool (better than steghide) |
-| binwalk -E | entropy checker in a file |
-| hashid | analyses used hash in string |
-| wireshark | exploring pcap files |
-| pngfix | repair corrupted pngs |
-| zbarimg | barcode / qrcode scanner |
-
 ### PDF tools
 
 | Tool name | Purpose |

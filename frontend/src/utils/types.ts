@@ -28,5 +28,6 @@ export type Tool = {
 export type ToolResult = {
     type?: string
     content?: string
+    isError?: boolean
     metadata?: Record<string, any>
 }

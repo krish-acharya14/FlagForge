@@ -8,6 +8,7 @@ using System.IO;
 using System.Net.Http;
 using System.Text.Json;
 using System.Windows;
+using System.Diagnostics;
 
 namespace FlagForgeHost;
 
@@ -75,6 +76,7 @@ public partial class MainWindow : Window
             case "getTools": GetTools(root); break;
             case "executeTool": await ExecuteTool(root); break;
             // case "executeTools": await ExecuteTools(root); break;
+            case "openInstallTerminal": OpenInstallTerminal(root); break;
 
             case "minimizeWindow": WindowState = WindowState.Minimized; break;
             case "closeWindow": Close(); break;
@@ -819,6 +821,35 @@ public partial class MainWindow : Window
 
         SendChallengeResult("deleteAttachmentResult", challenge);
     }
+    
+    private void OpenInstallTerminal(JsonElement root)
+    {
+        try
+        {
+            var payload = root.GetProperty("payload");
+            var toolName = payload.GetProperty("toolName").GetString()!;
+
+            var tool = ToolRegistry.GetTool(toolName);
+            if (tool?.InstallHint == null)
+            {
+                SendMessage(new { type = "openInstallTerminalFailed", error = "No install instructions are available for this tool. "});
+                return;
+            }
+
+            var bashCommand = $"{tool.InstallHint}; echo; read -p 'Press Enter to close this window...'";
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "wsl",
+                Arguments = $"-e bash -lc \"{bashCommand}\"",
+                UseShellExecute = true
+            });
+            SendMessage(new { type = "openInstallTerminalResult", data = true });
+        }
+        catch
+        {
+            SendMessage(new { type = "openInstallTerminalFailed", error = "Couldn't open a terminal. Make sure WSL is installed." });
+        }
+    }
 
     private void GetTools(JsonElement root)
     {
@@ -903,7 +934,9 @@ public partial class MainWindow : Window
                 data = results.Select(r => new
                 {
                     type = r.Type,
-                    content = r.Content
+                    content = r.Content,
+                    isError = r.IsError,
+                    metadata = r.Metadata
                 }).ToArray()
             });
         }
