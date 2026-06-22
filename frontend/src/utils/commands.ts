@@ -17,5 +17,6 @@ export const Commands = {
     DeleteAttachment: 'deleteAttachment',
     GetTools: 'getTools',
     ExecuteTool: 'executeTool',
-    OpenInstallTerminal: 'openInstallTerminal'
+    OpenInstallTerminal: 'openInstallTerminal',
+    ExtractZip: 'extractZip'
 } as const

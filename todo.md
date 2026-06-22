@@ -1,5 +1,4 @@
-## MORE TODO (PRE TOOLS)
-- ZIP (Compressed Files) Renderer
+
 
 ## IDENTIFIED ISSUES TO FIX:
 - Fix Toast Error in AddAttachmentsModal

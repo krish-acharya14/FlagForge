@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Win32;
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Text.Json;
 using System.Windows;
@@ -76,6 +77,7 @@ public partial class MainWindow : Window
             case "getAttachment": GetAttachment(root); break;
             case "saveAttachment": SaveAttachment(root); break;
             case "deleteAttachment": DeleteAttachment(root); break;
+            case "extractZip": ExtractZip(root); break;
 
             case "getTools": GetTools(root); break;
             case "executeTool": await ExecuteTool(root); break;
@@ -734,6 +736,64 @@ public partial class MainWindow : Window
             }
         });
     }
+    private void ExtractZip(JsonElement root)
+    {
+        var payload = root.GetProperty("payload");
+        var path = payload.GetProperty("path").GetString()!;
+        var challengeId = payload.GetProperty("challengeId").GetGuid();
+        var name = payload.GetProperty("name").GetString()!;
+
+        var challengeFilePath = FindChallengeFile(path, challengeId);
+        if (challengeFilePath == null)
+        {
+            SendMessage(new { type = "extractZipFailed", error = "Challenge not found." });
+            return;
+        }
+
+        var challenge = ReadChallengeFile(challengeFilePath);
+        if (challenge == null || !challenge.Attachments.Contains(name))
+        {
+            SendMessage(new { type = "extractZipFailed", error = "Attachment not found." });
+            return;
+        }
+
+        var challengePath = Path.GetDirectoryName(challengeFilePath)!;
+        var zipPath = Path.Combine(challengePath, name);
+
+        if (!File.Exists(zipPath))
+        {
+            SendMessage(new { type = "extractZipFailed", error = "Attachment file not found." });
+            return;
+        }
+
+        try
+        {
+            using (var archive = ZipFile.OpenRead(zipPath))
+            {
+                if (archive.Entries.Any(entry => string.Equals(entry.FullName, "challenge.json", StringComparison.OrdinalIgnoreCase)))
+                {
+                    SendMessage(new { type = "extractZipFailed", error = "This archive contains a file named \"challenge.json\", which would overwrite this challenge's data. Rename it inside the archive and try again." });
+                    return;
+                }
+            }
+
+            ZipFile.ExtractToDirectory(zipPath, challengePath, overwriteFiles: true);
+        }
+        catch (InvalidDataException)
+        {
+            SendMessage(new { type = "extractZipFailed", error = "This archive is corrupted, encrypted, or not a valid ZIP file." });
+            return;
+        }
+        catch (Exception ex)
+        {
+            SendMessage(new { type = "extractZipFailed", error = $"Failed to extract archive: {ex.Message}" });
+            return;
+        }
+
+        LoadAttachments(path, challenge);
+
+        SendChallengeResult("extractZipResult", challenge);
+    }
 
     private void SaveAttachment(JsonElement root)
     {
@@ -927,7 +987,6 @@ public partial class MainWindow : Window
             SendMessage(new
             {
                 type = "executeToolResult",
-                toolName = toolName,
                 data = results.Select(r => new
                 {
                     type = r.Type,
