@@ -1,26 +1,9 @@
-import { fa1, fa8, faArrowDown19, faArrowRightLong, faArrowUp91, faBroom, faCircleExclamation, faCopy, faEraser, faGripVertical, faHashtag, faKeyboard, faLayerGroup, faLink, faLock, faLockOpen, faMagnifyingGlass, faN, faShapes, faSquareBinary, faTrash, faXmark, type IconDefinition } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRightLong, faBroom, faCircleExclamation, faCopy, faEraser, faGripVertical, faKeyboard, faLayerGroup, faMagnifyingGlass, faShapes, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-
-type ToolDefinition = {
-    id: string
-    name: string
-    description: string
-    icon: IconDefinition
-    defaultOptions?: Record<string, any>
-    options?: ToolOption[]
-    execute: (input: string, options: Record<string, any>) => string
-}
-
-type ToolOption = {
-    key: string
-    label: string
-    type: 'text' | 'number' | 'checkbox'
-    default: string | number | boolean
-}
-
-// type StepOptions = Record<string, string | number | boolean>
+import type { ToolDefinition } from '../utils/types'
+import { TOOLS } from '../utils/tools/_index'
 
 type Step = {
     id: string
@@ -28,178 +11,22 @@ type Step = {
     options: Record<string, any>
 }
 
-const TOOLS: ToolDefinition[] = [
-    {
-        id: 'to-base64',
-        name: 'Convert to Base 64',
-        description: 'Convert text to Base64 format',
-        icon: faLock,
-        execute: input => btoa(String.fromCharCode(...new TextEncoder().encode(input)))
-    },
-    {
-        id: 'from-base64',
-        name: 'Convert from Base 64',
-        description: 'Convert Base64 data to text',
-        icon: faLockOpen,
-        execute: input => {
-            const bytes = Uint8Array.from(atob(input), c => c.charCodeAt(0))
-            return new TextDecoder().decode(bytes)
-        }
-    },
-    {
-        id: 'to-hex',
-        name: 'Convert to Hex',
-        description: 'Convert text to its hexadecimal representation',
-        icon: faHashtag,
-        execute: input => Array.from(new TextEncoder().encode(input)).map(byte => byte.toString(16).padStart(2, '0')).join('')
-    },
-    {
-        id: 'from-hex',
-        name: 'Convert from Hex',
-        description: 'Convert hexadecimal data to text',
-        icon: faHashtag,
-        execute: input => {
-            const bytes = new Uint8Array(input.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || [])
-            return new TextDecoder().decode(bytes)
-        }
-    },
-    {
-        id: 'to-decimal',
-        name: 'Convert to Decimal',
-        description: 'Convert text to its decimal representation',
-        icon: fa1,
-        execute: input => Array.from(new TextEncoder().encode(input)).map(byte => byte.toString(10)).join(' ')
-    },
-    {
-        id: 'from-decimal',
-        name: 'Convert from Decimal',
-        description: 'Convert decimal data to text',
-        icon: fa1,
-        execute: input => {
-            const bytes = new Uint8Array(input.split(' ').map(num => parseInt(num, 10)))
-            return new TextDecoder().decode(bytes)
-        }
-    },
-    {
-        id: 'to-binary',
-        name: 'Convert to Binary',
-        description: 'Convert text to its binary representation',
-        icon: faSquareBinary,
-        execute: input => Array.from(new TextEncoder().encode(input)).map(byte => byte.toString(2).padStart(8, '0')).join(' ')
-    },
-    {
-        id: 'from-binary',
-        name: 'Convert from Binary',
-        description: 'Convert binary data to text',
-        icon: faSquareBinary,
-        execute: input => {
-            const bytes = new Uint8Array(input.split(' ').map(num => parseInt(num, 2)))
-            return new TextDecoder().decode(bytes)
-        }
-    },
-    {
-        id: 'to-octal',
-        name: 'Convert to Octal',
-        description: 'Convert text to its octal representation',
-        icon: fa8,
-        execute: input => Array.from(new TextEncoder().encode(input)).map(byte => byte.toString(8)).join(' ')
-    },
-    {
-        id: 'from-octal',
-        name: 'Convert from Octal',
-        description: 'Convert octal data to text',
-        icon: fa8,
-        execute: input => {
-            const bytes = new Uint8Array(input.split(' ').map(num => parseInt(num, 8)))
-            return new TextDecoder().decode(bytes)
-        }
-    },
-    {
-        id: 'to-base-n',
-        name: 'Convert to Base N',
-        description: 'Convert a decimal number to a custom Base N representation',
-        icon: faN,
-        options: [
-            { key: 'base', label: 'Base', type: 'number', default: 16 }
-        ],
-        execute: (input, options) => {
-            const base = options.base ?? 16
-            if(typeof base !== 'number' || base < 2 || base > 36) throw new Error('Base must be a number between 2 and 36')
-            if(isNaN(base)) throw new Error('Base must be a valid number')
-            if(isNaN(Number(input))) throw new Error('Input must be a valid number')
-            if(!input.trim()) return ''
-            return parseInt(input, 10).toString(base)
-        }
-    },
-    {
-        id: 'from-base-n',
-        name: 'Convert from Base N',
-        description: 'Convert a custom Base N representation to a decimal number',
-        icon: faN,
-        options: [
-            { key: 'base', label: 'Base', type: 'number', default: 16 }
-        ],
-        execute: (input, options) => {
-            const base = options.base ?? 16
-            if(typeof base !== 'number' || base < 2 || base > 36) throw new Error('Base must be a number between 2 and 36')
-            if(isNaN(base)) throw new Error('Base must be a valid number')
-            if(input.split('').some(char => parseInt(char, 10) >= base)) throw new Error(`Input contains characters that are not valid for base ${base}`)
-            if(isNaN(parseInt(input, base))) throw new Error(`Input must be a valid number in base ${base}`)
-            if(!input.trim()) return ''
-            return parseInt(input, base).toString(10)
-        }
-    },
-    {
-        id: 'to-bcd',
-        name: 'Convert to BCD',
-        description: 'Convert text to its Binary-Coded Decimal representation',
-        icon: faArrowDown19,
-        execute: input => {
-            if(!input.trim()) return ''
-            if(input.split('').some(char => isNaN(parseInt(char, 10)))) throw new Error('Input must be a valid decimal number')
-            return input.split('').map(digit => parseInt(digit, 10).toString(2).padStart(4, '0')).join(' ')
-        }
-    },
-    {
-        id: 'from-bcd',
-        name: 'Convert from BCD',
-        description: 'Convert Binary-Coded Decimal data to text',
-        icon: faArrowUp91,
-        execute: input => {
-            if(!input.trim()) return ''
-            const bytes = input.split(' ').map(num => parseInt(num, 2))
-            if(bytes.some(byte => byte < 0 || byte > 9)) throw new Error('Input must be a valid BCD representation')
-            return bytes.map(byte => byte.toString(10)).join('')
-        }
-    },
-    {
-        id: 'url-encode',
-        name: 'URL Encode',
-        description: 'Encode text for use in a URL',
-        icon: faLink,
-        execute: input => encodeURIComponent(input)
-    },
-    {
-        id: 'url-decode',
-        name: 'URL Decode',
-        description: 'Decode URL-encoded text',
-        icon: faLink,
-        execute: input => decodeURIComponent(input)
-    }
-] as const
-
 export default function Converter() {
     const [steps, setSteps] = useState<Step[]>([])
     const [input, setInput] = useState('')
     const [search, setSearch] = useState('')
     const [draggingOver, setDraggingOver] = useState(false)
 
+    const addDefaultOptions = (tool: ToolDefinition) => {
+        return Object.fromEntries(tool.options?.map(option => [option.key, option.default]) || [])
+    }
+
     const addStep = (tool: ToolDefinition) => {
         setSteps(prev => [
             ...prev, {
                 id: crypto.randomUUID(),
                 toolId: tool.id,
-                options: tool.defaultOptions || {}
+                options: addDefaultOptions(tool)
             }
         ])
     }
@@ -339,35 +166,47 @@ export default function Converter() {
                                 <FontAwesomeIcon icon={tool.icon} className="text-primary text-sm shrink-0 mt-0.5" />
                                 <div className="flex flex-col gap-2 flex-1 min-w-0">
                                     <span className="font-medium leading-tight">{tool ? tool.name : 'Unknown Tool'}</span>
-                                    {tool?.options?.map(option => {
-                                        switch(option.type) {
-                                            case 'number':
-                                                return <div key={option.key} className="flex items-center gap-2">
-                                                    <label htmlFor={`${step.id}-${option.key}`} className="text-xs text-muted">{option.label}</label>
-                                                    <input type="number" id={`${step.id}-${option.key}`} value={step.options[option.key] || option.default} onChange={e => {
-                                                        const value = e.target.valueAsNumber
-                                                        updateStep(step.id, option.key, value)
-                                                    }} className="w-20 p-1 text-sm rounded-lg bg-bg border border-border focus:outline-none focus:ring-1 focus:ring-primary transition" />
-                                                </div>
-                                            case 'text':
-                                                return <div key={option.key} className="flex items-center gap-2">
-                                                    <label htmlFor={`${step.id}-${option.key}`} className="text-xs text-muted">{option.label}</label>
-                                                    <input type="text" id={`${step.id}-${option.key}`} value={step.options[option.key] || option.default} onChange={e => {
-                                                        const value = e.target.value
-                                                        updateStep(step.id, option.key, value)
-                                                    }} className="w-32 p-1 text-sm rounded-lg bg-bg border border-border focus:outline-none focus:ring-1 focus:ring-primary transition" />
-                                                </div>
-                                            case 'checkbox':
-                                                return <div key={option.key} className="flex items-center gap-2">
-                                                    <label htmlFor={`${step.id}-${option.key}`} className="text-xs text-muted">{option.label}</label>
-                                                    <input type="checkbox" id={`${step.id}-${option.key}`} checked={step.options[option.key] || option.default} onChange={e => {
-                                                        const value = e.target.checked
-                                                        updateStep(step.id, option.key, value)
-                                                    }} className="w-4 h-4 rounded bg-bg border border-border focus:outline-none focus:ring-1 focus:ring-primary transition" />
-                                                </div>
-                                            default: return null
-                                        }
-                                    })}
+                                    <div className="flex flex-row flex-wrap gap-2">
+                                        {tool?.options?.map(option => {
+                                            switch(option.type) {
+                                                case 'number':
+                                                    return <div key={option.key} className="flex items-center gap-2">
+                                                        <label htmlFor={`${step.id}-${option.key}`} className="text-xs text-muted">{option.label}</label>
+                                                        <input type="number" id={`${step.id}-${option.key}`} value={step.options[option.key] || option.default} onChange={e => {
+                                                            const value = e.target.valueAsNumber
+                                                            updateStep(step.id, option.key, value)
+                                                        }} className="w-20 p-1 text-sm rounded-lg bg-bg border border-border focus:outline-none focus:ring-1 focus:ring-primary transition" />
+                                                    </div>
+                                                case 'text':
+                                                    return <div key={option.key} className="flex items-center gap-2">
+                                                        <label htmlFor={`${step.id}-${option.key}`} className="text-xs text-muted">{option.label}</label>
+                                                        <input type="text" id={`${step.id}-${option.key}`} value={step.options[option.key] || option.default} onChange={e => {
+                                                            const value = e.target.value
+                                                            updateStep(step.id, option.key, value)
+                                                        }} className="w-32 p-1 text-sm rounded-lg bg-bg border border-border focus:outline-none focus:ring-1 focus:ring-primary transition" />
+                                                    </div>
+                                                case 'checkbox':
+                                                    return <div key={option.key} className="flex items-center gap-2">
+                                                        <label htmlFor={`${step.id}-${option.key}`} className="text-xs text-muted">{option.label}</label>
+                                                        <input type="checkbox" id={`${step.id}-${option.key}`} checked={step.options[option.key] || option.default} onChange={e => {
+                                                            const value = e.target.checked
+                                                            updateStep(step.id, option.key, value)
+                                                        }} className="w-4 h-4 rounded bg-bg border border-border focus:outline-none focus:ring-1 focus:ring-primary transition" />
+                                                    </div>
+                                                case 'select':
+                                                    return <div key={option.key} className="flex items-center gap-2">
+                                                        <label htmlFor={`${step.id}-${option.key}`} className="text-xs text-muted">{option.label}</label>
+                                                        <select id={`${step.id}-${option.key}`} value={step.options[option.key] || option.default} onChange={e => {
+                                                            const value = e.target.value
+                                                            updateStep(step.id, option.key, value)
+                                                        }} className="w-32 p-1 text-sm rounded-lg bg-bg border border-border focus:outline-none focus:ring-1 focus:ring-primary transition">
+                                                            {(option.options as string[]).map((opt, i) => <option key={i} value={opt}>{opt}</option>)}
+                                                        </select>
+                                                    </div>
+                                                default: return null
+                                            }
+                                        })}
+                                    </div>
                                 </div>
                                 <button onClick={() => removeStep(index)} title="Remove step" className="text-muted hover:text-primary cursor-pointer transition shrink-0"><FontAwesomeIcon icon={faTrash} /></button>
                             </div>
