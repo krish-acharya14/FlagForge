@@ -191,7 +191,7 @@ export default function Converter() {
                                                         <input type="checkbox" id={`${step.id}-${option.key}`} checked={step.options[option.key] || option.default} onChange={e => {
                                                             const value = e.target.checked
                                                             updateStep(step.id, option.key, value)
-                                                        }} className="w-4 h-4 rounded bg-bg border border-border focus:outline-none focus:ring-1 focus:ring-primary transition" />
+                                                        }} className="w-4 h-4 rounded bg-bg accent-primary border border-border focus:outline-none focus:ring-1 focus:ring-primary transition" />
                                                     </div>
                                                 case 'select':
                                                     return <div key={option.key} className="flex items-center gap-2">

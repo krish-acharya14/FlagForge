@@ -1,6 +1,6 @@
 import { faDownload, faFile, faFileCirclePlus, faFilter, faInfoCircle, faMagnifyingGlass, faPen, faPlus, faSpinner, faTag, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { BlockTypeSelect, BoldItalicUnderlineToggles, codeBlockPlugin, codeMirrorPlugin, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, thematicBreakPlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
+import { BoldItalicUnderlineToggles, codeBlockPlugin, codeMirrorPlugin, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, thematicBreakPlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -50,7 +50,6 @@ const mdPlugins = [
             <UndoRedo />
             <BoldItalicUnderlineToggles />
             <ListsToggle />
-            <BlockTypeSelect />
         </>
     })
 ]

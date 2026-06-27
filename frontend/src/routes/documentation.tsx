@@ -1,6 +1,6 @@
 import { faBook } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { codeBlockPlugin, codeMirrorPlugin, headingsPlugin, linkPlugin, listsPlugin, MDXEditor, quotePlugin, thematicBreakPlugin } from '@mdxeditor/editor'
+import { codeBlockPlugin, codeMirrorPlugin, headingsPlugin, imagePlugin, linkPlugin, listsPlugin, MDXEditor, quotePlugin, thematicBreakPlugin } from '@mdxeditor/editor'
 import { useState } from 'react'
 
 const files = import.meta.glob('/docs/**/*.md', {
@@ -15,6 +15,7 @@ const mdPlugins = [
     quotePlugin(),
     linkPlugin(),
     thematicBreakPlugin(),
+    imagePlugin({ disableImageResize: true }),
     codeBlockPlugin({ defaultCodeBlockLanguage: 'text' }),
     codeMirrorPlugin({
         codeBlockLanguages: {

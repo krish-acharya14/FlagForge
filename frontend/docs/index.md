@@ -161,6 +161,6 @@ FlagForge is suitable for:
 
 # Getting Started
 
-If you're new to FlagForge, begin with the **Creating Your First Workspace** guide. From there, you'll learn how to organize CTF projects, create challenges, upload attachments, use the built-in tools, and write clean, organized solutions.
+If you're new to FlagForge, begin with the **Launcher** guide. From there, you'll learn how to organize CTF projects, create challenges, upload attachments, use the built-in tools, and write clean, organized solutions.
 
 Happy hacking!
