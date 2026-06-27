@@ -284,7 +284,6 @@ export default function Converter() {
                                                 {tool.options.map(option => renderOption(step, option))}
                                             </div>
                                         )}
->>>>>>> 6ce2903 (Minor ui fixes)
                                     </div>
                                 </div>
                             )

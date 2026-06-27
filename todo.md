@@ -5,13 +5,13 @@
 - Correct type ToolResult in types.ts and ToolAccordion.tsx
 - Going from an attachment of a challenge to writeup of a different challenge triggers the toast for "Attachment Not Found".
 - When one tool is running and another tool is also ran while the first is still running, the output that is received earliest is pasted to both the tools result
+- Zip extraction does not work when there's a folder inside it.
 
 ## ATTACHMENT TOOLS:
 To add: pdfimages
 To fix: qpdf, mutool
 
 ## CONVERTER TOOLS:
-- Encrypt/Decrypt with Morse, Bacon, Substitute, Bifid, CipherSaber2, RC2, SM4, Citrix CTX1
 - Bcrypt, Scrypt, JWT Sign/Decode/Verify
 - Psuedo-Random Number Generator
 
