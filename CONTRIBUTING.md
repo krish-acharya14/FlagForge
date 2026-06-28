@@ -91,6 +91,7 @@ As the owner of the project, I request you to follow certain formatting guidelin
 * Avoid using `any` type in TypeScript; prefer specific types or generics.
 * Avoid leaving trailing commas in object literals or arrays.
 * In TSX files, avoid using the `()` syntax for fragments; use `<>` instead.
+* In TS/TSX files, avoid adding a space before the opening parenthesis of clauses like `if`, `for`, `while`, etc. For example, use `if(condition)` instead of `if (condition)`.
 
 ---
 

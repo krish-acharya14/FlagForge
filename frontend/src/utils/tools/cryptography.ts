@@ -3,9 +3,7 @@ import CryptoJS from 'crypto-js'
 import type { ToolDefinition } from '../types'
 import bacon from 'bacon-cipher'
 import { Substitution } from 'cipherjs'
-// @ts-ignore: node-forge has no included type declarations in this project
 import * as forge from 'node-forge'
-// @ts-ignore: sm-crypto has no included type declarations in this project
 import { sm4 } from 'sm-crypto'
 
 const OPTIONS: any[] = [
@@ -532,7 +530,7 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
             const blockSize = options.period > 0 ? options.period : (clean.length || 1)
 
             let result = ''
-            for (let i = 0; i < clean.length; i += blockSize) {
+            for(let i = 0; i < clean.length; i += blockSize) {
                 const block = clean.slice(i , i + blockSize)
                 result += decrypt ? bifidDecryptBlock(block, square) : bifidEncryptBlock(block, square)
             }
@@ -547,10 +545,10 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
         icon: faLock,
         options: [
             { key: 'key', label: 'Key', type: 'text', default: '' },
-            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'rounds', label: 'Key-Scheduling Rounds', type: 'number', default: 20 },
-            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
-            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
+            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'mode', label: 'Mode', type: 'select', default: 'Encrypt', options: ['Encrypt', 'Decrypt'] }
         ],
         execute: (input, options) => {
@@ -560,17 +558,17 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
             const outputFormat = getFormat('Output', options.output_format)
             const rounds = options.rounds || 20
 
-            const CS2: any = (CryptoJS.algo.RC4 as any).extend( {
+            const CS2 = (CryptoJS.algo.RC4 as any).extend({
                 _doReset: function() {
                     const keyWords = this._key.words
                     const keySigBytes = this._key.sigBytes
                     const S: number[] = this._S = []
 
-                    for (let i = 0; i < 256; i++) S[i] = i
+                    for(let i = 0; i < 256; i++) S[i] = i
 
-                    let j = 0;
-                    for (let i = 0; i < rounds; i++) {
-                        for (let k = 0; k < 256; k++) {
+                    let j = 0
+                    for(let i = 0; i < rounds; i++) {
+                        for(let k = 0; k < 256; k++) {
                             const keyByteIndex = k % keySigBytes
                             const keyByte = (keyWords[keyByteIndex >>> 2] >>> ( 24 - (keyByteIndex % 4) * 8)) & 0xff
                             
@@ -584,7 +582,7 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
                 }
             })
 
-            if (!decrypt) {
+            if(!decrypt) {
                 const iv = CryptoJS.lib.WordArray.random(10)
                 const combinedKey = key.clone().concat(iv.clone())
                 const plaintext = inputFormat.parse(input)
@@ -607,12 +605,12 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
         icon: faLock,
         options: [
             { key: 'key', label: 'Key', type: 'text', default: '' },
-            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'iv', label: 'IV (leave blank for ECB)', type: 'text', default: '' },
-            { key: 'iv_format', label: 'IV Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'iv_format', label: 'IV Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'effective_bits', label: 'Effective Key Bits', type: 'number', default: 128 },
-            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
-            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'HEX', 'Base64'] }
+            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
+            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'Hex', 'Base64'] }
         ],
         execute: (input, options) => {
             const inputFormat = getFormat('Input', options.input_format)
@@ -636,12 +634,12 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
         icon: faLockOpen,
         options: [
             { key: 'key', label: 'Key', type: 'text', default: '' },
-            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'iv', label: 'IV (leave blank for ECB)', type: 'text', default: '' },
-            { key: 'iv_format', label: 'IV Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'iv_format', label: 'IV Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'effective_bits', label: 'Effective Key Bits', type: 'number', default: 128 },
-            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
-            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'HEX', 'Base64'] }
+            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
+            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'Hex', 'Base64'] }
         ],
         execute: (input, options) => {
             const inputFormat = getFormat('Input', options.input_format)
@@ -652,7 +650,7 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
             const decipher = forge.rc2.createDecryptionCipher(keyBytes, options.effective_bits)
             decipher.start(ivBytes ?? null)
             decipher.update(forge.util.createBuffer(wordArrayToByteString(inputFormat.parse(input))))
-            if (!decipher.finish()) throw new Error('RC2 decryption failed (invalid key, IV or padding')
+            if(!decipher.finish()) throw new Error('RC2 decryption failed (invalid key, IV or padding')
             
             return byteStringToWordArray(decipher.output.getBytes()).toString(outputFormat)
         }
@@ -665,13 +663,13 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
         icon: faLock,
         options: [
             { key: 'key', label: 'Key', type: 'text', default: '' },
-            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'iv', label: 'IV (leave blank for ECB)', type: 'text', default: '' },
-            { key: 'iv_format', label: 'IV Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'iv_format', label: 'IV Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'effective_bits', label: 'Effective Key Bits', type: 'number', default: 128 },
             { key: 'mode', label: 'Mode', type: 'select', default: 'ECB', options: ['ECB', 'CBC'] },
-            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
-            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'HEX', 'Base64'] }
+            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
+            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'Hex', 'Base64'] }
         ],
         execute: (input, options) => {
             const inputFormat = getFormat('Input', options.input_format)
@@ -680,7 +678,7 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
             const plainBytes = wordArrayToBytes(inputFormat.parse(input))
 
             const sm4Options: any = { output: 'array' }
-            if (options.mode === 'CBC') {
+            if(options.mode === 'CBC') {
                 sm4Options.mode = 'cbc'
                 sm4Options.iv = wordArrayToBytes(getParsedFormat('IV', options.iv, options.iv_format))
             }
@@ -697,13 +695,13 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
         icon: faLockOpen,
         options: [
             { key: 'key', label: 'Key', type: 'text', default: '' },
-            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'iv', label: 'IV (leave blank for ECB)', type: 'text', default: '' },
-            { key: 'iv_format', label: 'IV Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
+            { key: 'iv_format', label: 'IV Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
             { key: 'effective_bits', label: 'Effective Key Bits', type: 'number', default: 128 },
             { key: 'mode', label: 'Mode', type: 'select', default: 'ECB', options: ['ECB', 'CBC'] },
-            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'HEX', 'Base64'] },
-            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'HEX', 'Base64'] }
+            { key: 'input_format', label: 'Input Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
+            { key: 'output_format', label: 'Output Format', type: 'select', default: 'Base64', options: ['UTF-8', 'Hex', 'Base64'] }
         ],
         execute: (input, options) => {
             const inputFormat = getFormat('Input', options.input_format)
@@ -712,7 +710,7 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
             const cipherBytes = wordArrayToBytes(inputFormat.parse(input))
 
             const sm4Options: any = { output: 'array' }
-            if (options.mode === 'CBC') {
+            if(options.mode === 'CBC') {
                 sm4Options.mode = 'cbc'
                 sm4Options.iv = wordArrayToBytes(getParsedFormat('IV', options.iv, options.iv_format))
             }
@@ -777,7 +775,7 @@ function getPadding(padding: string) {
 
 function wordArrayToByteString(wordArray: CryptoJS.lib.WordArray) : string {
     let str = ''
-    for (let i = 0; i < wordArray.sigBytes; i++) 
+    for(let i = 0; i < wordArray.sigBytes; i++) 
         str += String.fromCharCode((wordArray.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff)
     
     return str
@@ -785,7 +783,7 @@ function wordArrayToByteString(wordArray: CryptoJS.lib.WordArray) : string {
 
 function byteStringToWordArray(str: string) {
     const words: number[] = []
-    for (let i = 0; i < str.length; i++) 
+    for(let i = 0; i < str.length; i++) 
         words[i >>> 2] = (words[i >>> 2] || 0) | ((str.charCodeAt(i) & 0xff) << (24 - (i % 4) * 8))
 
     return CryptoJS.lib.WordArray.create(words, str.length)
@@ -793,7 +791,7 @@ function byteStringToWordArray(str: string) {
 
 function wordArrayToBytes(wordArray: CryptoJS.lib.WordArray): number[] {
     const bytes: number[] = []
-    for (let i = 0; i < wordArray.sigBytes; i++) 
+    for(let i = 0; i < wordArray.sigBytes; i++) 
         bytes.push((wordArray.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff)
 
     return bytes
@@ -801,7 +799,7 @@ function wordArrayToBytes(wordArray: CryptoJS.lib.WordArray): number[] {
 
 function bytesToWordArray(bytes: number[]) {
     const words: number[] = []
-    for (let i = 0; i < bytes.length; i += 4) 
+    for(let i = 0; i < bytes.length; i += 4) 
         words.push(((bytes[i] || 0) << 24) | ((bytes[i + 1] || 0) << 16) | ((bytes[i + 2] || 0) << 8) | (bytes[i + 3] || 0))
 
     return CryptoJS.lib.WordArray.create(words, bytes.length)
@@ -815,8 +813,8 @@ function buildPolybiusSquare(key: string): string {
     const cleanKey = key.toUpperCase().replace(/J/g, 'I').replace(/[^A-Z]/g, '')
     const seen = new Set<string>()
     let square = ''
-    for (const ch of cleanKey) {
-        if (!seen.has(ch)) {
+    for(const ch of cleanKey) {
+        if(!seen.has(ch)) {
             seen.add(ch)
             square += ch
         }
@@ -828,7 +826,7 @@ function bifidEncryptBlock(block: string, square: string): string {
     const rows: number[] = []
     const cols: number[] = []
 
-    for (const ch of block) {
+    for(const ch of block) {
         const idx = square.indexOf(ch)
         rows.push(Math.floor(idx / 5))
         cols.push(idx % 5)
@@ -836,14 +834,14 @@ function bifidEncryptBlock(block: string, square: string): string {
     
     const sequence = rows.concat(cols)
     let res = ''
-    for (let i = 0; i < sequence.length; i += 2) res += square[sequence[i] * 5 + sequence[i + 1]]
-    return res;
+    for(let i = 0; i < sequence.length; i += 2) res += square[sequence[i] * 5 + sequence[i + 1]]
+    return res
 }
 
 function bifidDecryptBlock(block: string, square: string): string {
     const sequence: number[] = []
     
-    for (const ch of block) {
+    for(const ch of block) {
         const idx = square.indexOf(ch)
         sequence.push(Math.floor(idx / 5), idx % 5)
     }
@@ -853,16 +851,16 @@ function bifidDecryptBlock(block: string, square: string): string {
     const cols = sequence.slice(half)
     let res = ''
 
-    for (let i = 0; i < half; i++) res += square[rows[i] * 5 + cols[i]]
+    for(let i = 0; i < half; i++) res += square[rows[i] * 5 + cols[i]]
 
     return res
 }
 
 function ctx1Encode(input: string): string {
-    let v = 0;
+    let v = 0
     let output = ''
     
-    for (let i = 0; i < input.length; i++) {
+    for(let i = 0; i < input.length; i++) {
         const p = input.charCodeAt(i) & 0xff
         const x = p ^ v
         const hi = (x >> 4) & 0xf
@@ -880,7 +878,7 @@ function ctx1Decode(input: string): string {
     let v = 0 
     let output = ''
     
-    for (let i = 0; i < input.length; i += 4) {
+    for(let i = 0; i < input.length; i += 4) {
         const hi = input.charCodeAt(i + 2) - 65
         const lo = input.charCodeAt(i + 3) - 65
         const p = (hi * 16 + lo) ^ v
@@ -888,4 +886,41 @@ function ctx1Decode(input: string): string {
         v ^= p
     }
     return output
+}
+
+const MORSE_CODE_MAP: Record<string, string> = {
+    A: '.-', B: '-...', C: '-.-.', D: '-..', E: '.', F: '..-.', G: '--.', H: '....', I: '..', J: '.---',
+    K: '-.-', L: '.-..', M: '--', N: '-.', O: '---', P: '.--.', Q: '--.-', R: '.-.', S: '...', T: '-',
+    U: '..-', V: '...-', W: '.--', X: '-..-', Y: '-.--', Z: '--..',
+    0: '-----', 1: '.----', 2: '..---', 3: '...--', 4: '....-', 5: '.....', 6: '-....', 7: '--...', 8: '---..', 9: '----.'
+}
+
+const MORSE_CODE_REVERSE: Record<string, string> = Object.fromEntries(
+    Object.entries(MORSE_CODE_MAP).map(([key, value]) => [value, key])
+)
+
+const morse = {
+    encode(input: string) {
+        return input
+            .toUpperCase()
+            .split(' ')
+            .map(word => word
+                .split('')
+                .map(char => MORSE_CODE_MAP[char] ?? '')
+                .filter(Boolean)
+                .join(' ')
+            )
+            .join(' / ')
+    },
+    decode(input: string) {
+        return input
+            .trim()
+            .split(/\s*\/\s*/)
+            .map(word => word
+                .split(/\s+/)
+                .map(symbol => MORSE_CODE_REVERSE[symbol] ?? '')
+                .join('')
+            )
+            .join(' ')
+    }
 }

@@ -1,20 +1,31 @@
 ---
-title: Introduction to Exiftool
+title: Exiftool Tool
 category: Tools
 ---
 
-# Introduction to Exiftool
-ExifTool is a platform-independent Perl library plus a command-line application for reading, writing, and editing meta information in a wide variety of files.
+# Exiftool Tool
+---
+
+`exiftool` is a platform-independent Perl library plus a command-line application for reading, writing, and editing meta information in a wide variety of files.
 
 It supports many different types of metadata including EXIF, GPS, IPTC, XMP, JFIF, GeoTIFF, ICC Profile, Photoshop IRB, FlashPix, AFCP, and ID3, as well as the maker notes of many digital cameras.
 
-An example of using ExifTool to read metadata from an image file:
+---
 
-```bash
-exiftool image.jpg
-```
+## Information
+`exiftool` can read and write metadata in image, audio, and video files. It can also extract metadata from PDF, Microsoft Office, and other document formats. The tool is widely used in digital forensics, photography, and media management.
 
-could give output like:
+---
+
+## Using as FlagForge Tool
+<p class="text-primary">NOTE: Windows Subsystem for Linux (WSL) must be installed on your Windows machine in-order to use the 'exiftool' tool. Also, the 'exiftool' tool must be installed separately. The tool can be quickly installed by following instructions given within the app itself.</p>
+
+The `exiftool` tool is a general purpose FlagForge attachment tool, meaning that it can be run on any type of file. Simply select a file in the Attachment View and click on the "Attachment Info" button in the top right corner of the main area. Then, click on the "Exiftool" tool to execute it on the selected attachment.
+
+---
+
+## Example Usage
+Suppose, you have a file named `image.jpg` attached to a challenge. To extract its metadata using the `exiftool` tool, you would select the file in the Attachment View and click on the "Exiftool" tool. The output might look like this:
 
 ```
 ExifTool Version Number         : 13.50
@@ -44,3 +55,8 @@ Megapixels                      : 0.090
 ```
 
 This output shows various metadata fields extracted from the image file, including the file name, size, modification date, image dimensions, and a comment that contains a flag in this case.
+
+## More Information
+For more information about the `exiftool` command, you can refer to its official documentation [here](https://exiftool.org/).
+
+Happy hacking!
