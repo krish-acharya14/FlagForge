@@ -1,4 +1,4 @@
-import { faDownload, faFile, faFileCirclePlus, faFilter, faInfoCircle, faMagnifyingGlass, faPen, faPlus, faSpinner, faTag, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faFile, faFileCirclePlus, faFilter, faFolderOpen, faInfoCircle, faMagnifyingGlass, faPen, faPlus, faSpinner, faTag, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { BoldItalicUnderlineToggles, codeBlockPlugin, codeMirrorPlugin, headingsPlugin, linkPlugin, listsPlugin, ListsToggle, markdownShortcutPlugin, MDXEditor, quotePlugin, thematicBreakPlugin, toolbarPlugin, UndoRedo } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
@@ -217,6 +217,18 @@ export default function Workspace() {
         workspaceStore.updateActiveChallengeField('tags', updatedTags)
     }
 
+    const handleOpenFolder = async() => {
+        if(!workspaceStore.path) return
+        const challengePath = activeChallenge ? `${workspaceStore.path}\\challenges\\${activeChallenge.title}` : workspaceStore.path
+        try {
+            await sendCommand(Commands.OpenFolder, { path: challengePath })
+            toast.success('Folder opened in File Explorer!')
+        } catch(err) {
+            console.error(err)
+            toast.error(err instanceof Error ? err.message : 'Failed to open folder.')
+        }
+    }
+
     const handleCreateReadme = async() => {
         if(!activeChallenge) return
         try {
@@ -243,6 +255,12 @@ export default function Workspace() {
     const handleSelectChallenge = (challenge: typeof challenges[0]) => {
         setView('challenge')
         workspaceStore.setActiveChallenge(challenge)
+        setAttachmentToView(null)
+        setFile(null)
+        setAttachmentEditable(false)
+        setAnalyzed(false)
+        setTools([])
+        setToolResults({})
     }
 
     const allExistingTags = activeChallenge
@@ -463,6 +481,7 @@ export default function Workspace() {
                     <div className="flex flex-row justify-between items-center">
                         <h1 className="text-4xl">{activeChallenge.title}</h1>
                         <div className="flex flex-row gap-2 items-center">
+                            <button onClick={handleOpenFolder} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faFolderOpen} /></button>
                             <button onClick={() => setAddAttachmentsModalOpen(true)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faFileCirclePlus} /></button>
                             <button onClick={handleCreateReadme} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faDownload} /></button>
                             <button onClick={() => setDeleteChallengeModalOpen(true)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faTrash} /></button>
@@ -541,7 +560,8 @@ export default function Workspace() {
                     <div className="flex flex-row justify-between items-center">
                         <h1 className="text-4xl line-clamp-1 leading-tight">{file?.name}</h1>
                         <div className="flex flex-row gap-2 items-center">
-                            {CODE_TYPES.includes(file?.type as any) && <button onClick={() => setAttachmentEditable(!attachmentEditable)} className={`bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light ${attachmentEditable ? 'text-primary' : 'hover:text-primary'} transition`}><FontAwesomeIcon icon={faPen} /></button>}
+                            <button onClick={handleOpenFolder} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faFolderOpen} /></button>
+                            {CODE_TYPES.includes(file?.type as typeof CODE_TYPES[number]) && <button onClick={() => setAttachmentEditable(!attachmentEditable)} className={`bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light ${attachmentEditable ? 'text-primary' : 'hover:text-primary'} transition`}><FontAwesomeIcon icon={faPen} /></button>}
                             <button onClick={() => setAttachmentInfoAsideOpen(!attachmentInfoAsideOpen)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faInfoCircle} /></button>
                             <button onClick={() => setDeleteAttachmentModalOpen(true)} className="bg-bg-light/50 px-3 py-2 border border-border rounded-xl cursor-pointer hover:bg-bg-light hover:text-primary transition"><FontAwesomeIcon icon={faTrash} /></button>
                         </div>

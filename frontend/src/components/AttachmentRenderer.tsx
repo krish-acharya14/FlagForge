@@ -17,7 +17,11 @@ type AttachmentData = {
 }
 
 export const CODE_TYPES = [
-    '.c', '.cpp', '.py', '.js', '.java', '.html', '.css', '.json', '.txt', '.ts'
+    '.c', '.cpp', '.py', '.js', '.java', '.html', '.css', '.json', '.txt', '.ts', '.tsx', '.xml', '.yml', '.yaml',
+    '.ini', '.bat', '.sh', '.ps1', '.rb', '.go', '.rs', '.php', '.pl', '.swift', '.kt', '.lua', '.r', '.sql', '.asm',
+    '.s', '.h', '.hpp', '.cs', '.fs', '.vb', '.vbs', '.vba', '.clj', '.cljs', '.groovy', '.dart', '.erl', '.ex', '.exs',
+    '.hs', '.jl', '.lisp', '.scm', '.tcl', '.vhdl', '.asm', '.s', '.h', '.hpp', '.cs', '.fs', '.vb', '.vbs', '.vba',
+    '.clj', '.cljs', '.groovy', '.dart', '.erl', '.ex', '.exs', '.hs', '.jl', '.lisp', '.scm', '.tcl', '.vhdl'
 ] as const
 
 const mdPlugins = [
@@ -42,7 +46,7 @@ export const renderer = (open: boolean, file: AttachmentData | null, editable: b
         <p className="text-muted self-center">Loading attachment...</p>
     </div>
 
-    if(CODE_TYPES.includes(file.type as any)) return <CodeRenderer file={file} editable={editable} setFile={setFile} />
+    if(CODE_TYPES.includes(file.type as typeof CODE_TYPES[number])) return <CodeRenderer file={file} editable={editable} setFile={setFile} />
     if(file.mimeType.startsWith('image/')) return <ImageRenderer file={file} />
     if(file.mimeType === 'application/pdf') return <PdfRenderer file={file} />
     if(file.mimeType.startsWith('audio/')) return <AudioRenderer file={file} />
@@ -60,9 +64,23 @@ function PdfRenderer({ file }: { file: AttachmentData }) {
 }
 
 function CodeRenderer({ file, editable, setFile }: { file: AttachmentData, editable: boolean, setFile: React.Dispatch<React.SetStateAction<AttachmentData | null>> }) {
+    let language = file.type.slice(1)
+    switch(file.type.slice(1)) {
+        case 'py': language = 'python'; break
+        case 'js': case 'jsx': language = 'javascript'; break
+        case 'ts': case 'tsx': language = 'typescript'; break
+        case 'cs': language = 'csharp'; break
+        case 'kt': language = 'kotlin'; break
+        case 'ps1': language = 'powershell'; break
+        case 'rb': language = 'ruby'; break
+        case 'rs': language = 'rust'; break
+        case 'pl': language = 'perl'; break
+        case 'sh': language = 'shell'; break
+    }
+
     return <Editor
         height="80vh" width="100%"
-        language={file.type.slice(1)} value={file.content} onChange={(value) => {
+        language={language} value={file.content} onChange={(value) => {
             if(editable) setFile(prev => prev ? { ...prev, content: value || '' } : null)
         }}
         theme="vs-dark"

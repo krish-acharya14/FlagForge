@@ -28,7 +28,11 @@ public partial class MainWindow : Window
     };
     private static readonly string[] nonBase64Formats = new[]
     {
-        ".c", ".cpp", ".py", ".js", ".java", ".html", ".css", ".json", ".txt", ".ts", ".md"
+        ".c", ".cpp", ".py", ".js", ".java", ".html", ".css", ".json", ".txt", ".ts", ".tsx", ".md", ".xml", ".yml", ".yaml",
+        ".ini", ".bat", ".sh", ".ps1", ".rb", ".go", ".rs", ".php", ".pl", ".swift", ".kt", ".lua", ".r", ".sql", ".asm",
+        ".s", ".h", ".hpp", ".cs", ".fs", ".vb", ".vbs", ".vba", ".clj", ".cljs", ".groovy", ".dart", ".erl", ".ex", ".exs",
+        ".hs", ".jl", ".lisp", ".scm", ".tcl", ".vhdl", ".asm", ".s", ".h", ".hpp", ".cs", ".fs", ".vb", ".vbs", ".vba",
+        ".clj", ".cljs", ".groovy", ".dart", ".erl", ".ex", ".exs", ".hs", ".jl", ".lisp", ".scm", ".tcl", ".vhdl"
     };
 
     public MainWindow()
@@ -62,6 +66,7 @@ public partial class MainWindow : Window
         switch (type)
         {
             case "pickFolder" : PickFolder(); break;
+            case "openFolder": OpenFolder(root); break;
             case "loadRecentWorkspaces": LoadRecentWorkspaces(); break;
             case "createWorkspace" : CreateWorkspace(root); break;
             case "openWorkspace" : OpenWorkspace(); break;
@@ -253,6 +258,33 @@ public partial class MainWindow : Window
         {
             type = "pickFolderResult",
             data = dialog.FolderName
+        });
+    }
+
+    private void OpenFolder(JsonElement root)
+    {
+        var payload = root.GetProperty("payload");
+        var path = payload.GetProperty("path").GetString()!;
+
+        if (!Directory.Exists(path))
+        {
+            SendMessage(new
+            {
+                type = "openFolderFailed",
+                error = "Folder does not exist."
+            });
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = path,
+            UseShellExecute = true,
+            Verb = "open"
+        });
+        SendMessage(new
+        {
+            type = "openFolderResult"
         });
     }
 

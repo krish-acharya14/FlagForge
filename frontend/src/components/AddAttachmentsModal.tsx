@@ -1,7 +1,7 @@
 import { faDownload, faFile, faFileCirclePlus, faLink, faPlus, faUpload, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useState } from 'react'
-import { toast } from 'react-hot-toast/headless'
+import toast from 'react-hot-toast'
 import { sendCommand } from '../services/host'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { Commands } from '../utils/commands'
@@ -12,12 +12,19 @@ type Props = {
     onCreate: () => void
 }
 
+type AttachmentOptions = {
+    url?: string
+    name?: string
+}
+
 export default function AddAttachmentsModal({ open, onClose, onCreate }: Props) {
     const workspaceStore = useWorkspaceStore()
     const [newAttachmentName, setNewAttachmentName] = useState('')
     const [attachmentUrl, setAttachmentUrl] = useState('')
 
-    const addAttachment = async(type: 'upload' | 'download' | 'create', options?: any) => {
+    const invalidTitle = /[<>:"/\\|?*]/.test(newAttachmentName)
+
+    const addAttachment = async(type: 'upload' | 'download' | 'create', options?: AttachmentOptions) => {
         if(!workspaceStore.activeChallenge) return
         try {
             await sendCommand(Commands.AddAttachments, {
@@ -47,7 +54,7 @@ export default function AddAttachmentsModal({ open, onClose, onCreate }: Props) 
     }
 
     const handleCreateAttachment = async() => {
-        if(!newAttachmentName) return
+        if(!newAttachmentName || invalidTitle) return
         setNewAttachmentName('')
         addAttachment('create', { name: newAttachmentName })
     }
@@ -104,9 +111,10 @@ export default function AddAttachmentsModal({ open, onClose, onCreate }: Props) 
                                 onChange={(e) => setAttachmentUrl(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleDownloadAttachment()}
                                 placeholder="https://..."
+                                autoComplete="off"
                                 className="flex-1 px-3 py-2.5 text-sm rounded-lg border border-border bg-bg placeholder:text-muted/60 focus:outline-none focus:ring-1 focus:ring-primary transition"
                             />
-                            <button onClick={handleDownloadAttachment} className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold bg-primary/90 hover:bg-primary rounded-lg cursor-pointer transition whitespace-nowrap">
+                            <button onClick={handleDownloadAttachment} className="flex items-center justify-center w-28 gap-1.5 px-4 py-2.5 text-sm font-semibold bg-primary/90 hover:bg-primary rounded-lg cursor-pointer transition whitespace-nowrap">
                                 <FontAwesomeIcon icon={faDownload} className="text-xs" />
                                 Download
                             </button>
@@ -128,13 +136,15 @@ export default function AddAttachmentsModal({ open, onClose, onCreate }: Props) 
                                 onChange={(e) => setNewAttachmentName(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleCreateAttachment()}
                                 placeholder="filename.md"
+                                autoComplete="off"
                                 className="flex-1 px-3 py-2.5 text-sm rounded-lg border border-border bg-bg placeholder:text-muted/60 focus:outline-none focus:ring-1 focus:ring-primary transition"
                             />
-                            <button onClick={handleCreateAttachment} className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold bg-primary/90 hover:bg-primary rounded-lg cursor-pointer transition whitespace-nowrap">
+                            <button onClick={handleCreateAttachment} disabled={invalidTitle} className="flex items-center justify-center w-28 gap-1.5 px-4 py-2.5 text-sm font-semibold bg-primary/90 hover:bg-primary rounded-lg cursor-pointer transition whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
                                 <FontAwesomeIcon icon={faPlus} className="text-xs" />
                                 Create
                             </button>
                         </div>
+                        {invalidTitle && <span className="text-xs text-primary mt-1">Invalid filename. Please avoid using the following characters: &lt; &gt; : " / \ | ? *</span>}
                     </div>
                 </div>
             </div>

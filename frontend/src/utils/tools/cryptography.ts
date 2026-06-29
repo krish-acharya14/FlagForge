@@ -7,7 +7,15 @@ import * as forge from 'node-forge'
 import { sm4 } from 'sm-crypto'
 import bcrypt from 'bcryptjs'
 
-const OPTIONS: any[] = [
+type OptionProps = {
+    key: string
+    label: string
+    type: 'text' | 'select' | 'checkbox' | 'number'
+    default: string | boolean | number
+    options?: string[]
+}
+
+const OPTIONS: OptionProps[] = [
     { key: 'key', label: 'Key', type: 'text', default: '' },
     { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
     { key: 'iv', label: 'IV', type: 'text', default: '' },
@@ -678,7 +686,7 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
             const keyBytes = wordArrayToBytes(getParsedFormat('Key', options.key, options.key_format))
             const plainBytes = wordArrayToBytes(inputFormat.parse(input))
 
-            const sm4Options: any = { output: 'array' }
+            const sm4Options: typeof options = { output: 'array' }
             if(options.mode === 'CBC') {
                 sm4Options.mode = 'cbc'
                 sm4Options.iv = wordArrayToBytes(getParsedFormat('IV', options.iv, options.iv_format))
@@ -710,7 +718,7 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
             const keyBytes = wordArrayToBytes(getParsedFormat('Key', options.key, options.key_format))
             const cipherBytes = wordArrayToBytes(inputFormat.parse(input))
 
-            const sm4Options: any = { output: 'array' }
+            const sm4Options: typeof options = { output: 'array' }
             if(options.mode === 'CBC') {
                 sm4Options.mode = 'cbc'
                 sm4Options.iv = wordArrayToBytes(getParsedFormat('IV', options.iv, options.iv_format))

@@ -1,5 +1,6 @@
 export const Commands = {
     PickFolder: 'pickFolder',
+    OpenFolder: 'openFolder',
     LoadRecentWorkspaces: 'loadRecentWorkspaces',
     OpenRecentWorkspace: 'openRecentWorkspace',
     OpenWorkspace: 'openWorkspace',
