@@ -100,6 +100,15 @@ export default function Converter() {
         toast.success('Copied to clipboard')
     }
 
+    const isOptionVisible = (step: Step, option: any) => {
+        if (!option.dependsOn) return true
+
+        const currentVal = step.options[option.dependsOn.key]
+        const expected = option.dependsOn.value
+
+        return Array.isArray(expected) ? expected.includes(currentVal) : currentVal === expected
+    }
+
     const renderOption = (step: Step, option: any) => {
         const fieldId = `${step.id}-${option.key}`
         const value = step.options[option.key] ?? option.default
@@ -285,7 +294,7 @@ export default function Converter() {
                                 </div>
 
                                 {tool?.options && tool.options.length > 0 && <div className="px-4 py-3 grid grid-cols-3 gap-x-4 gap-y-3">
-                                    {tool.options.map(option => renderOption(step, option))}
+                                    {tool.options.filter(option => isOptionVisible(step, option)).map(option => renderOption(step, option))}
                                 </div>}
                             </div>
                         </div>

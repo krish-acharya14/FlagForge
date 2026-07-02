@@ -51,4 +51,5 @@ export type ToolOption = {
     type: 'text' | 'number' | 'checkbox' | 'select'
     default: string | number | boolean
     options?: string[] | number[] | boolean[]
+    dependsOn?: { key: string, value: string | number | boolean | (string | number | boolean)[] }
 }

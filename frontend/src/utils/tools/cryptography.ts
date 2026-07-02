@@ -15,6 +15,39 @@ type OptionProps = {
     options?: string[]
 }
 
+class MersenneTwister {
+    private mt: number[] = []
+    private index = 624
+
+    constructor(seed = 5489) {
+        this.mt[0] = seed >>> 0
+        for (let i = 1; i < 624; i++) {
+            const prev = this.mt[i - 1]
+            this.mt[i] = (Math.imul(1812433253, prev ^ (prev >>> 30)) + i) >>> 0
+        }
+    }
+
+    private twist() {
+        for (let i = 0; i < 624; i++) {
+            const y = (this.mt[i] & 0x80000000) + (this.mt[(i + 1) % 624] & 0x7fffffff)
+            let next = this.mt[(i + 397) % 624] ^ (y >>> 1)
+            if (y % 2 !== 0) next ^= 0x9908b0df
+            this.mt[i] = next >>> 0
+        }
+        this.index = 0
+    }
+
+    public random_int(): number {
+        if (this.index >= 624) this.twist()
+        let y = this.mt[this.index++]
+        y ^= y >>> 11
+        y ^= (y << 7) & 0x9d2c5680
+        y ^= (y << 15) & 0xefc60000
+        y ^= y >>> 18
+        return y >>> 0
+    }
+}
+
 const OPTIONS: OptionProps[] = [
     { key: 'key', label: 'Key', type: 'text', default: '' },
     { key: 'key_format', label: 'Key Format', type: 'select', default: 'UTF-8', options: ['UTF-8', 'Hex', 'Base64'] },
@@ -768,6 +801,46 @@ export const CRYPTOGRAPHY_TOOLS: ToolDefinition[] = [
             const hash = options?.hash || ''
             return bcrypt.compareSync(input, hash).toString()
         }
+    },
+    {
+        id: 'prng',
+        name: 'Pseudo Random Number Generator (PRNG)',
+        description: 'Generate random values using a cryptographically secure system RNG, or a seeded reproducible PRNG',
+        category: 'Cryptography',
+        icon: faLock,
+        options: [
+            { key: 'algorithm', label: 'Algorithm', type: 'select', default: 'CSPRNG (System)', options: ['CSPRNG (System)', 'Mersenne Twister (MT19937)', 'Linear Congruential Generator (LCG)', 'XorShift32'] },
+            { key: 'seed', label: 'Seed', type: 'number', default: 1, dependsOn: { key: 'algorithm', value: ['Mersenne Twister (MT19937)', 'Linear Congruential Generator (LCG)', 'XorShift32'] } },
+            { key: 'length', label: 'Length / Count', type: 'number', default: 8 },
+            { key: 'output_format', label: 'Output Format', type: 'select', default: 'HEX', options: ['HEX', 'Base64', 'UTF-8', 'Integer Array'] }
+        ],
+        execute: (input, options) => {
+            const count = Math.max(0, Math.floor(options.length) || 0)
+            const seed = Math.floor(options.seed) || 0
+
+            let values: number[]
+            switch (options.algorithm) {
+                case 'Mersenne Twister (MT19937)': 
+                    values = mt19937Sequence(seed, count)
+                    break
+                case 'Linear Congruential Generator (LCG)': 
+                    values = lcgSequence(seed, count) 
+                    break
+                case 'XorShift32':
+                    values = xorshift32Sequence(seed, count)
+                    break
+                default:
+                    values = csprngSequence(count)
+            }
+
+            if (options.output_format === 'Integer Array') return JSON.stringify(values)
+            
+            const bytes: number[] = []
+            for (const value of values) bytes.push((value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff)
+            
+            const outputFormat = getFormat('Output', options.output_format)
+            return bytesToWordArray(bytes).toString(outputFormat)
+        }
     }
 ] as const
 
@@ -960,4 +1033,45 @@ const morse = {
             )
             .join(' ')
     }
+}
+
+function csprngSequence(count: number): number[] {
+    const wordArray = CryptoJS.lib.WordArray.random(count * 4)
+    return wordArray.words.slice(0, count).map(w => w >>> 0)
+}
+
+function mt19937Sequence(seed: number, count: number): number[] {
+    const mt = new MersenneTwister(seed)
+    const values: number[] = []
+
+    for (let i = 0; i < count; i++) values.push(mt.random_int())
+
+    return values
+}
+
+function lcgSequence(seed: number, count: number): number[] {
+    let state = seed >>> 0
+    const values: number[] = []
+
+    for (let i = 0; i < count; i++) {
+        state = (Math.imul(state, 1664525) + 1013904223) >>> 0
+        values.push(state)
+    }
+
+    return values
+}
+
+function xorshift32Sequence(seed: number, count: number): number[] {
+    let state = (seed >>> 0) || 0x9e3779b9
+    const values: number[] = []
+
+    for (let i = 0; i < count; i++) {
+        state ^= state << 13
+        state >>>= 0
+        state ^= state >>> 17
+        state ^= state << 5
+        state >>>= 0
+        values.push(state)
+    }
+    return values
 }

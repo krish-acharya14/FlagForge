@@ -9,7 +9,6 @@ To fix: qpdf, mutool
 
 ## CONVERTER TOOLS:
 - JWT Sign/Decode/Verify
-- Psuedo-Random Number Generator
 
 - Parse X.509, Parse ASN.1, Parse SSH
 - Convert HEX <-> PEM <-> Object Identifier
